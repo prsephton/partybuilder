@@ -12,7 +12,7 @@ class IMember(component.Interface):
 class IParty(component.Interface):
     party_name = schema.TextLine(title=u'Party Name: ')
     type = schema.Choice(title=u'Type: ', values=[u'WvW', u'PvE', u'PvP'], default=u'WvW')
-    view = schema.choice(title=u'View: ', values=[u'Summary', u'Stats', u'Gear',
+    view = schema.Choice(title=u'View: ', values=[u'Summary', u'Stats', u'Gear',
                                                   u'Skills', u'CCs', u'Conditions',
                                                   u'Boons', u'Traits'])
-    members = schema.List(title=u'Members', value_type=IMember, unique=True, default=[])
+#     members = schema.List(title=u'Members', value_type=schema.Int, unique=True, default=[])
