@@ -3,7 +3,7 @@ Do a functional doctest test on the app.
 
 Let's first create an instance of Partybuilder at the top level:
 
-    >>> from partybuilder.app import Partybuilder
+    >>> from partybuilder.builder import Partybuilder
     >>> root = getRootFolder()
     >>> root['app'] = Partybuilder()
 
@@ -37,7 +37,7 @@ Check some basic information about the page you visit:
     <body>
       <h1>Congratulations!</h1>
       <p>Your Grok application is up and running.
-      Edit <code>partybuilder/app_templates/index.pt</code> to change
+      Edit <code>partybuilder/builder_templates/index.pt</code> to change
       this page.</p>
       <img src="http://localhost/fanstatic/partybuilder/evencaveman.jpg"/>
     </body>

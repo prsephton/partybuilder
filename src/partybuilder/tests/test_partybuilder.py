@@ -6,7 +6,7 @@ from zope.publisher.browser import TestRequest
 from zope.fanstatic.testing import ZopeFanstaticBrowserLayer
 
 import partybuilder.tests
-from partybuilder.app import Partybuilder
+from partybuilder.builder import Partybuilder
 
 # In this file we create a unittest, a functional unittest.
 
