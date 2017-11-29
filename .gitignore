@@ -1,6 +1,10 @@
 /bin/
 /parts/
+/var/
+/extends-cache/
+/develop-eggs/
 /.settings/
 .installed.cfg
 .project
 .pydevproject
+*.pyc
