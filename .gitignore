@@ -1,2 +1,6 @@
 /bin/
 /parts/
+/.settings/
+.installed.cfg
+.project
+.pydevproject
