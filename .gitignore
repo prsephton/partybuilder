@@ -9,3 +9,4 @@
 .pydevproject
 *.pyc
 /google.oauth
+/versions.cfg
