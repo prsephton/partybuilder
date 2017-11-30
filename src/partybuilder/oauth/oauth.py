@@ -225,6 +225,7 @@ class OAuth2Applications(grok.Container):
     editmode = False
 
     def __init__(self):
+        super(OAuth2Applications, self).__init__()
         self.sequence = 0
 
     def new(self):
@@ -238,11 +239,17 @@ class OAuth2ApplicationsView(grok.View):
     grok.name('index')
     grok.require('zope.Public')
 
+    def update(self, oauth2editing=False):
+        self.context.editmode = oauth2editing
+
 
 class OAuth2ApplicationsEdit(grok.View):
     grok.context(OAuth2Applications)
     grok.name('edit')
     grok.require('zope.Public')
+
+    def update(self, oauth2editing=True):
+        self.context.editmode = oauth2editing
 
 
 class OAuth2AppNew(grok.View):
