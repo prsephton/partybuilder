@@ -222,6 +222,8 @@ class OAuth2AppEdit(grok.EditForm):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 class OAuth2Applications(grok.Container):
     ''' A container for OAuth2 applications '''
+    editmode = False
+
     def __init__(self):
         self.sequence = 0
 

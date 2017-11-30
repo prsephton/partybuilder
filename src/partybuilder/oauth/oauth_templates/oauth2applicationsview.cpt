@@ -1,5 +1,5 @@
 <div id='oauth2ApplicationView'>
-  <p>Authenticate using any of: </p>
+  <p>Login using: </p>
   <ul>
   	<li tal:repeat="oa context.values()">
   		<a tal:attributes="href oa.authentication_uri(request)">
