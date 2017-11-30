@@ -27,6 +27,7 @@ setup(name='partybuilder',
                         'grokcore.startup',
                         # Add extra requirements here
                         'gw2api',
+                        'six',
                         ],
       entry_points={
           'fanstatic.libraries': [
