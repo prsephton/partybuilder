@@ -1,4 +1,4 @@
-<div id="tokenview">
+<div id="errorview" tal:condition="view.error">
 	<p>An error
 		[<a tal:content="view.error" tal:attributes="href view.error_uri"></a>]
 		has occurred while authenticating

@@ -1,0 +1,1 @@
+<div tal:replace="viewlet/oauth/@@oauth2applicationsview"></div>
