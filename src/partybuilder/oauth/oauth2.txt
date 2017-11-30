@@ -1,0 +1,106 @@
+
+OAuth-2.  Several possibilities for authentication servers, namely
+Google, twitter, etc.
+
+ Step 1: GET /authorize?response_type=code&client_id=s6BhdRkqt3&state=xyz
+       &redirect_uri=<My URI>
+
+ Step 2: Server redirects to <redirect_uri> passing code, state
+
+ Step 3: Use the auth code to get an access token.
+  eg.  POST /token HTTP/1.1
+       Host: server.example.com
+       Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW
+       Content-Type: application/x-www-form-urlencoded
+           grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA
+           &redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb
+
+ Step 4: An access token, and possible refresh token is returned.  For example:
+   HTTP/1.1 200 OK
+    Content-Type: application/json;charset=UTF-8
+    Cache-Control: no-store
+    Pragma: no-cache
+
+    {
+      "access_token":"2YotnFZFEjr1zCsicMWpAA",
+      "token_type":"example",
+      "expires_in":3600,
+      "refresh_token":"tGzv3JOkF0XG5Qx2TlKWIA",
+      "example_parameter":"example_value"
+    }
+
+ Google example:
+
+  https://accounts.google.com/o/oauth2/v2/auth?
+                 redirect_uri=https://developers.google.com/oauthplayground&
+                 prompt=consent&response_type=code&
+                 client_id=407408718192.apps.googleusercontent.com&
+                 scope=https://www.googleapis.com/auth/plus.me&
+                 access_type=offline
+
+ GET /oauthplayground/?code=4/6_UrqTrER4TxL2Ov5nAGYEV6ghPAOr2-TDexbvzunak HTTP/1.1
+    Host: developers.google.com
+ POST /oauth2/v4/token HTTP/1.1
+ Host: www.googleapis.com
+ Content-length: 233
+ content-type: application/x-www-form-urlencoded
+ user-agent: google-oauth-playground
+
+ code=4%2F6_UrqTrER4TxL2Ov5nAGYEV6ghPAOr2-TDexbvzunak&redirect_uri=https%3A%2F%2Fdevelopers.google.com%2Foauthplayground&client_id=407408718192.apps.googleusercontent.com&client_secret=************&scope=&grant_type=authorization_code
+
+ HTTP/1.1 200 OK
+ Content-length: 1023
+ X-xss-protection: 1; mode=block
+ X-content-type-options: nosniff
+ Transfer-encoding: chunked
+ Expires: Mon, 01 Jan 1990 00:00:00 GMT
+ Vary: Origin, X-Origin
+ Server: GSE
+ -content-encoding: gzip
+ Pragma: no-cache
+ Cache-control: no-cache, no-store, max-age=0, must-revalidate
+ Date: Wed, 29 Nov 2017 13:40:48 GMT
+ X-frame-options: SAMEORIGIN
+ Alt-svc: hq=":443"; ma=2592000; quic=51303431; quic=51303339; quic=51303338; quic=51303337; quic=51303335,quic=":443"; ma=2592000; v="41,39,38,37,35"
+ Content-type: application/json; charset=UTF-8
+
+ {
+   "access_token": "ya29.GlsTBb2qwuIUKgqamzw00F-AzdsHIBTEopFD2J8A4E9tA7kzrgwwWq67Kx0i26V28uvd8FGp281-Dk0sqH3NXdHkaIcrVcAFyrX5XlMAcpJYbq-FWatGHKaiQJKh",
+   "token_type": "Bearer",
+   "expires_in": 3600,
+   "refresh_token": "1/qmHQVY3Fnu-Ds8z0n_ZMfeCAAzCR46bVxMUxU6LUiqs",
+   "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjVlM2I5MzgxMGY2OTQzZWFiYmI3N2Q1ZTJjMzM1ODRlZGU3NjZjZGMifQ.eyJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDQ1OTg2MDM5NjM1ODU4NTAzNzMiLCJhdF9oYXNoIjoiU29McjJkeFBtUGZzQ1E5SUhBRGZPdyIsImlzcyI6Imh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbSIsImlhdCI6MTUxMTk2Mjg0OCwiZXhwIjoxNTExOTY2NDQ4fQ.mGDNyXNQMgAGZbPSopAKfUlO7Fq5FQCg-XDCzyB1PHq5bCzqdzr7pup1SOwFyk3DYe6RbHTAb9RsTqL-mkB04e_ypcQFIFlkFmTL6ipqX_IVvqP2RXXYkAtzflz79YTZsiiMPef1-LJ-8FOvOLYbhB3kTU9FN-ffal6PXcZO7G4HuEOuQUu6AnJ5-zsIiN2EiEhxTot8NAFp4RUIrR1kCLEG8VvxZYklcyPK_mmhPv5fHF9B_Of0sErzPi6mo_ucxqsgXlAZeGW412g2EDcEhvr2RMOqe12hb2u4PDXYO5tIOs-JewITuV-rZJL2ZkbLEwILx46CdiPbJ1S6BOoLuQ"
+ }
+
+
+GET /userinfo/v2/me HTTP/1.1
+Host: www.googleapis.com
+Content-length: 0
+Authorization: Bearer ya29.GlsTBb2qwuIUKgqamzw00F-AzdsHIBTEopFD2J8A4E9tA7kzrgwwWq67Kx0i26V28uvd8FGp281-Dk0sqH3NXdHkaIcrVcAFyrX5XlMAcpJYbq-FWatGHKaiQJKh
+
+HTTP/1.1 200 OK
+Content-length: 295
+X-xss-protection: 1; mode=block
+Content-location: https://www.googleapis.com/userinfo/v2/me
+X-content-type-options: nosniff
+Transfer-encoding: chunked
+Expires: Mon, 01 Jan 1990 00:00:00 GMT
+Vary: Origin, X-Origin
+Server: GSE
+-content-encoding: gzip
+Pragma: no-cache
+Cache-control: no-cache, no-store, max-age=0, must-revalidate
+Date: Wed, 29 Nov 2017 13:43:53 GMT
+X-frame-options: SAMEORIGIN
+Alt-svc: hq=":443"; ma=2592000; quic=51303431; quic=51303339; quic=51303338; quic=51303337; quic=51303335,quic=":443"; ma=2592000; v="41,39,38,37,35"
+Content-type: application/json; charset=UTF-8
+
+{
+  "family_name": ...",
+  "name": "...",
+  "picture": "path/to/photo.jpg",
+  "gender": "male",
+  "link": "https://plus.google.com/linkno",
+  "given_name": "...",
+  "id": "..."
+}
