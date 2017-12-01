@@ -2,9 +2,8 @@ import grok
 import simplejson as json
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import urlencode
-from zope import component, schema
+from zope import component, schema, location
 from random import randint
-
 
 class OAuth2Logins(grok.ViewletManager):
     ''' embed with tal:context="structure provider:oauth2logins" '''
@@ -50,16 +49,6 @@ class Authorization(grok.Model):
     def get_uri(self):
         parms = "&".join(["{}={}".format(k,v) for k,v in self.parms.items()])
         return  """{}?{}""".format(self.uri, parms)
-
-
-class AuthView(grok.View):
-    ''' This view simply redirects to the authorization uri '''
-    grok.context(Authorization)
-    grok.require('zope.Public')
-    grok.name('index')
-
-    def render(self):   # Get an access code
-        self.redirect(self.context.get_uri())
 
 
 class TokenRequest(grok.Model):
@@ -115,7 +104,7 @@ class TokenView(ErrorView):
 
 class IOAuthApp(component.Interface):
     service = schema.TextLine(title=u'Service: ')
-    icon = schema.Bytes(title=u'Display Icon:')
+    icon = schema.Bytes(title=u'Display Icon:', required=False)
     uri = schema.URI(title=u'URI: ')
     client_id = schema.TextLine(title=u'Client ID: ')
     secret = schema.TextLine(title=u'Secret: ')
@@ -134,6 +123,7 @@ class OAuth2App(grok.Model):
     scope = None
     token = None
     authorize = None
+
     grok.traversable('token')
     grok.traversable('authorize')
 
@@ -141,18 +131,20 @@ class OAuth2App(grok.Model):
         self.app_id = app_id
 
     def authentication_uri(self, request):
-        self.state = str(randint(1000))
+        self.state = str(randint(0, 1000))
         self.token = TokenRequest(self.uri,
                                   client_id=self.client_id,
                                   secret=self.secret)
-        redirect_uri = grok.url(request, self.token, "tokenview")  # exchange code for token
+        location.locate(self.token, self, 'token')
+        redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))  # exchange code for token
         self.authorize = Authorization(self.uri,
                                        redirect_uri=redirect_uri,
                                        client_id=self.client_id,
                                        scope=self.scope,
                                        state=self.state)
+        location.locate(self.authorize, self, 'authorize')
         self.token.set_redirect_uri(redirect_uri)
-        return grok.url(request, self.authorize)
+        return self.authorize.get_uri()
 
     @property
     def apptoken(self):
@@ -163,12 +155,12 @@ class OAuth2App(grok.Model):
 class OAuth2AppIconView(grok.View):
     ''' Returns an image if defined for the app '''
     grok.context(OAuth2App)
-    grok.name('icon')
+    grok.name('iconview')
     grok.require('zope.Public')
 
     def render(self):
         fn = self.context.icon_filename
-        if type(fn) is str:
+        if type(fn) is str or type(fn) is unicode:
             fn = fn.lower()
             if fn.find('.gif')>0:
                 mimetype="image/gif"
@@ -194,10 +186,20 @@ class OAuth2AppEdit(grok.EditForm):
         ''' record the icon file name here '''
         if 'form.icon' in self.request.form:
             icon = self.request.form['form.icon']
-            self.context.icon_filename = icon.filename
+            if hasattr(icon, 'filename'):
+                self.context.icon_filename = icon.filename
+
+    @grok.action(u'Apply')
+    def apply(self, **data):
+        self.applyData(self.context, **data)
+        self.redirect(self.url(u'../..'))
+
+    @grok.action("Cancel", validator=lambda *a, **k: {})
+    def cancel(self, **data):
+        self.redirect(self.url(u'../..'))
 
 
-class OAuth2AppEdit(grok.EditForm):
+class OAuth2AppDelete(grok.EditForm):
     grok.context(OAuth2App)
     grok.name('delete')
     grok.require('zope.Public')
@@ -206,12 +208,14 @@ class OAuth2AppEdit(grok.EditForm):
     @grok.action("Delete this app")
     def delete(self, **data):
         ct =  self.context.__parent__
+        url = self.url(u'../..')
         app_id = self.context.app_id
         del ct[app_id]
+        self.redirect(url)
 
-    @grok.action("Cancel")
+    @grok.action("Cancel", validator=lambda *a, **k: {})
     def cancel(self, **data):
-        self.redirect(self.url(self.__parent__, 'edit'))
+        self.redirect(self.url(u'../..'))
 
 
 #_______________________________________________________________________
@@ -232,6 +236,7 @@ class OAuth2Applications(grok.Container):
         app_id = str(self.sequence)
         self[app_id] = OAuth2App(app_id)
         self.sequence += 1
+        return self[app_id]
 
 
 class OAuth2ApplicationsView(grok.View):
@@ -239,17 +244,11 @@ class OAuth2ApplicationsView(grok.View):
     grok.name('index')
     grok.require('zope.Public')
 
-    def update(self, oauth2editing=False):
-        self.context.editmode = oauth2editing
-
 
 class OAuth2ApplicationsEdit(grok.View):
     grok.context(OAuth2Applications)
     grok.name('edit')
     grok.require('zope.Public')
-
-    def update(self, oauth2editing=True):
-        self.context.editmode = oauth2editing
 
 
 class OAuth2AppNew(grok.View):
@@ -277,4 +276,9 @@ class OAuth2Viewlet(grok.Viewlet):
             self.oauth = app['oauth2Applications']
         else:
             self.oauth = app['oauth2Applications'] = OAuth2Applications()
+        if 'oauth2editing' in self.request:
+            try:
+                self.oauth.editmode = int(self.request['oauth2editing'])
+            except:
+                pass
 

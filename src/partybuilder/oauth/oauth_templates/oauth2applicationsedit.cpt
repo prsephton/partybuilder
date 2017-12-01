@@ -1,17 +1,18 @@
 <div id='oauth2applicationsedit'>
 	<p>Currently defined OAuth2 applications: <span tal:condition="not:len(context.keys())">None</span></p>
-	<ul tal:condition="not:len(context.keys())">
+	<ul tal:condition="len(context.keys())">
 		<tal:loop tal:repeat="oa context.values()">
 			<li>
-				<span style="min-width:15em" tal:content="oa.service"></span>
-				<span style="min-width:10em">
+				<div style="display: inline-block">
 					<a tal:attributes="href view.url(oa, '@@edit')"><button>Edit</button></a>
-				</span>
-				<span style="min-width:10em">
+				</div>
+				<div style="margin-right:1em; display: inline-block">
 					<a tal:attributes="href view.url(oa, '@@delete')"><button>Delete</button></a>
-				</span>
+				</div>
+				<div style="display: inline-block" tal:content="oa.service"></div>
 			</li>
 		</tal:loop>
 	</ul>
 	<a tal:attributes="href view.url(context, '@@new')"><button>Add a new service</button></a>
+	<a href=".?oauth2editing=0"><button>Stop editing</button></a>
 </div>

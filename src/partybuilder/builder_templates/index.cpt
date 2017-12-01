@@ -3,6 +3,7 @@
 </head>
 <body>
 	<h1>GW2 Party Builder</h1>
-
+	<div tal:content="structure provider:oauth2logins">
+	</div>
 </body>
 </html>
