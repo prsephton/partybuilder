@@ -4,6 +4,33 @@ from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import urlencode
 from zope import component, schema, location
 from random import randint
+from zope.component.interfaces import IObjectEvent, ObjectEvent
+from zope.session.interfaces import ISession
+
+class IOAuthDoneEvent(IObjectEvent):
+    ''' This event is fired when OpenAuth2 returns a request token.
+        The object which is the subject of the event is an instance of
+        TokenRequest.
+        The TokenRequest.__parent__ is an instance of OAuth2App.
+        TokenRequest.info is a dict which contains the access_token.
+
+        We can use @grok.subscribe(IOAuthDoneEvent) to subscribe
+    '''
+
+class IOAuthDetailExtractor(component.Interface):
+    ''' A utility that implements this interface, having the same
+        name as the service will be called if it exists, to extract
+        user details from the server.
+    '''
+    def __init__(self, token):
+        ''' Using the data from the token, retrieve user detail '''
+
+    def getPrincipal(self):
+        ''' Should return an object that implements IPrincipal '''
+
+    def userInfo(self):
+        ''' Should return a dict containing user info '''
+
 
 class OAuth2Logins(grok.ViewletManager):
     ''' embed with tal:context="structure provider:oauth2logins" '''
@@ -80,6 +107,10 @@ class TokenRequest(grok.Model):
         self._p_changed = True
 
 
+class OAuthDoneEvent(ObjectEvent):
+    grok.implements(IOAuthDoneEvent)
+
+
 class TokenView(ErrorView):
     ''' Once we have an auth code, we can issue a POST to the
         authorization server and exchange the code for a token.
@@ -98,6 +129,19 @@ class TokenView(ErrorView):
                 data = urlencode(self.context.parms)
                 res = urlopen(self.context.url, data=data).read()  # should be doing a post
                 self.context.info = json.loads(res)
+                # Update session information with auth info
+                session = ISession(self.request)['OAuth2']
+                session['info'] = self.context.info
+
+                service = self.context.__parent__.service
+                detail = component.queryUtility(IOAuthDetailExtractor, name=service)
+                if detail:
+                    detail = detail(self.context)
+                    session['detail'] = detail.userInfo()
+                    session['principal'] = detail.getPrincipal()
+
+                # If we get here, we can notify subscribers.
+                grok.notify(OAuthDoneEvent(self.context))
             else:
                 self.error = 'State Mismatch'
 
