@@ -6,6 +6,7 @@ from zope import component, schema, location
 from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
+from zope.security.interfaces import IPrincipal
 
 class IOAuthDoneEvent(IObjectEvent):
     ''' This event is fired when OpenAuth2 returns a request token.
@@ -17,19 +18,14 @@ class IOAuthDoneEvent(IObjectEvent):
         We can use @grok.subscribe(IOAuthDoneEvent) to subscribe
     '''
 
-class IOAuthDetailExtractor(component.Interface):
-    ''' A utility that implements this interface, having the same
-        name as the service will be called if it exists, to extract
-        user details from the server.
+class ITokenRequest(component.Interface):
+    ''' A token request.  We should be able to adapt this to an IPrincipal,
+        using a named adapter.
     '''
-    def __init__(self, token):
-        ''' Using the data from the token, retrieve user detail '''
 
-    def getPrincipal(self):
-        ''' Should return an object that implements IPrincipal '''
-
-    def userInfo(self):
-        ''' Should return a dict containing user info '''
+class OAuth2EditingPermission(grok.Permission):
+    ''' A permission for editing OAuth2 apps list '''
+    grok.name(u'OAuth2.editing')
 
 
 class OAuth2Logins(grok.ViewletManager):
@@ -79,6 +75,8 @@ class Authorization(grok.Model):
 
 
 class TokenRequest(grok.Model):
+    grok.implements(ITokenRequest)
+
     uri = ""
     parms = {}
     info = { "access_token": "",
@@ -134,11 +132,8 @@ class TokenView(ErrorView):
                 session['info'] = self.context.info
 
                 service = self.context.__parent__.service
-                detail = component.queryUtility(IOAuthDetailExtractor, name=service)
-                if detail:
-                    detail = detail(self.context)
-                    session['detail'] = detail.userInfo()
-                    session['principal'] = detail.getPrincipal()
+                principal = component.queryAdapter(self.context, IPrincipal, name=service)
+                session['principal'] = principal() if principal else None
 
                 # If we get here, we can notify subscribers.
                 grok.notify(OAuthDoneEvent(self.context))
@@ -288,18 +283,21 @@ class OAuth2ApplicationsView(grok.View):
     grok.name('index')
     grok.require('zope.Public')
 
+    def canEdit(self):
+        from zope.security import checkPermission
+        return checkPermission('OAuth2.editing', self.context)
 
 class OAuth2ApplicationsEdit(grok.View):
     grok.context(OAuth2Applications)
     grok.name('edit')
-    grok.require('zope.Public')
+    grok.require('OAuth2.editing')
 
 
 class OAuth2AppNew(grok.View):
     ''' Create a new OAuth2 application and edit it '''
     grok.context(OAuth2Applications)
     grok.name('new')
-    grok.require('zope.Public')
+    grok.require('OAuth2.editing')
 
     def render(self):
         self.redirect(self.url(self.context.new(), 'edit'))

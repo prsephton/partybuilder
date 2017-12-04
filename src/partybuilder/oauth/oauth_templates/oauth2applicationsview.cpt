@@ -9,5 +9,5 @@
   		</a>
   	</li>
   </ul>
-  <a href=".?oauth2editing=1"><button>Edit List</button></a>
+  <a tal:condition='view.canEdit()' href=".?oauth2editing=1"><button>Edit List</button></a>
 </div>
