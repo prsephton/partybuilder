@@ -6,7 +6,7 @@ from zope.security.interfaces import IPrincipal
 from partybuilder.oauth import ITokenRequest
 from zope.catalog.interfaces import ICatalog
 from zope.schema.fieldproperty import FieldProperty
-from six.moves.urllib.request import urlopen
+from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 import simplejson as json
 
@@ -48,9 +48,10 @@ class GoogleTokenToUser(grok.Adapter):
         user.authInfo = token.info
 
         url = u"https://www.googleapis.com/userinfo/v2/me"
-        args = urlencode(Authorization="{} {}".format(token.info['token_type'],
-                                                      token.info['access_token']))
-        res = urlopen("{}&{}".format(url, args)).read()
+        req = Request(url)
+        req.add_header("Authorization", "{} {}".format(token.info['token_type'],
+                                                       token.info['access_token']))
+        res = urlopen(req).read()
         if res: res = json.loads(res)
         if res is None:
             user.title = u''
@@ -107,18 +108,19 @@ class Partybuilder(grok.Application, grok.Container):
         self['parties'] = Parties()
 
 
-class Index(grok.View):
-    grok.context(ILayout)
-
-    def update(self):
-        resource.style.need()
-
-
 class UserIndex(grok.Indexes):
     grok.site(Partybuilder)
     grok.context(User)
     grok.name('userindex')
 
     id = grok.index.Text()  # an internal Principal ID
+
+
+class Index(grok.View):
+    grok.context(ILayout)
+
+    def update(self):
+        resource.style.need()
+
 
 
