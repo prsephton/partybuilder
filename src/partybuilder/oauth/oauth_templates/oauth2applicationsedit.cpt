@@ -1,4 +1,4 @@
-<div id='oauth2applicationsedit'>
+<div id='oauth2applicationsedit' tal:condition="view.form is None">
 	<p>Currently defined OAuth2 applications: <span tal:condition="not:len(context.keys())">None</span></p>
 	<ul tal:condition="len(context.keys())">
 		<tal:loop tal:repeat="oa context.values()">
@@ -15,4 +15,7 @@
 	</ul>
 	<a tal:attributes="href view.url(context, '@@new')"><button>Add a new service</button></a>
 	<a href=".?oauth2editing=0"><button>Stop editing</button></a>
+</div>
+<div id='oauth2applicationsedit' tal:condition="view.form is not None">
+	<div tal:replace="structure path:view/form" />
 </div>

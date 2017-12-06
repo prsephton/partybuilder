@@ -3,7 +3,7 @@ import grok
 from partybuilder import resource
 from interfaces import IUser, IParty, ILayout
 from zope.security.interfaces import IPrincipal
-from partybuilder.oauth import ITokenRequest
+from partybuilder.oauth import ITokenRequest, IOAuthSite
 from zope.catalog.interfaces import ICatalog
 from zope.schema.fieldproperty import FieldProperty
 from six.moves.urllib.request import urlopen, Request
@@ -100,7 +100,7 @@ class Parties(grok.Container):
 
 
 class Partybuilder(grok.Application, grok.Container):
-    grok.implements(ILayout)
+    grok.implements(ILayout, IOAuthSite)
 
     def __init__(self):
         super(Partybuilder, self).__init__()

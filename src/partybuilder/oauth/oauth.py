@@ -7,6 +7,8 @@ from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
 from zope.security.interfaces import IPrincipal
+from zope.authentication.interfaces import IAuthentication, PrincipalLookupError
+#from zope.pluggableauth.authentication import PluggableAuthentication
 
 class IOAuthDoneEvent(IObjectEvent):
     ''' This event is fired when OpenAuth2 returns a request token.
@@ -17,6 +19,9 @@ class IOAuthDoneEvent(IObjectEvent):
 
         We can use @grok.subscribe(IOAuthDoneEvent) to subscribe
     '''
+
+class IOAuthSite(component.Interface):
+    ''' A marker for sites that want to use OAuth '''
 
 class ITokenRequest(component.Interface):
     ''' A token request.  We should be able to adapt this to an IPrincipal,
@@ -218,7 +223,6 @@ class OAuth2AppIconView(grok.View):
 
 class OAuth2AppEdit(grok.EditForm):
     grok.context(OAuth2App)
-    grok.name('edit')
     grok.require('zope.Public')
 
     def update(self):
@@ -228,33 +232,62 @@ class OAuth2AppEdit(grok.EditForm):
             if hasattr(icon, 'filename'):
                 self.context.icon_filename = icon.filename
 
+    def finish(self):
+        sn = ISession(self.request)['OAuth2']
+        sn['form'] = None
+        self.redirect(self.request.URL)
+
     @grok.action(u'Apply')
     def apply(self, **data):
         self.applyData(self.context, **data)
-        self.redirect(self.url(u'../..'))
+        self.finish()
 
     @grok.action("Cancel", validator=lambda *a, **k: {})
     def cancel(self, **data):
-        self.redirect(self.url(u'../..'))
+        self.finish()
+
+
+class AppEdit(grok.View):
+    grok.context(OAuth2App)
+    grok.name('edit')
+
+    def render(self):
+        sn = ISession(self.request)['OAuth2']
+        sn['form'] = (self.context, 'oauth2appedit')
+        self.redirect('../..')
 
 
 class OAuth2AppDelete(grok.EditForm):
     grok.context(OAuth2App)
-    grok.name('delete')
     grok.require('zope.Public')
+
     form_fields = grok.Fields(IOAuthApp, for_display=True).select('service', 'client_id')
+
+    def finish(self):
+        sn = ISession(self.request)['OAuth2']
+        sn['form'] = None
+        self.redirect(self.request.URL)
 
     @grok.action("Delete this app")
     def delete(self, **data):
         ct =  self.context.__parent__
-        url = self.url(u'../..')
         app_id = self.context.app_id
         del ct[app_id]
-        self.redirect(url)
+        self.finish()
 
     @grok.action("Cancel", validator=lambda *a, **k: {})
     def cancel(self, **data):
-        self.redirect(self.url(u'../..'))
+        self.finish()
+
+
+class AppDelete(grok.View):
+    grok.context(OAuth2App)
+    grok.name('delete')
+
+    def render(self):
+        sn = ISession(self.request)['OAuth2']
+        sn['form'] = (self.context, 'oauth2appdelete')
+        self.redirect('../..')
 
 
 #_______________________________________________________________________
@@ -284,13 +317,24 @@ class OAuth2ApplicationsView(grok.View):
     grok.require('zope.Public')
 
     def canEdit(self):
+        return True
         from zope.security import checkPermission
-        return checkPermission('OAuth2.editing', self.context)
+        return checkPermission('OAuth2.editing', self)
 
 class OAuth2ApplicationsEdit(grok.View):
     grok.context(OAuth2Applications)
     grok.name('edit')
     grok.require('OAuth2.editing')
+
+    form = None
+
+    def update(self):
+        self.form = None
+        sn = ISession(self.request)['OAuth2']
+        if sn is not None and 'form' in sn.keys():
+            if sn['form']:
+                ctx, view = sn['form']
+                self.form = component.queryMultiAdapter((ctx, self.request), name=view)
 
 
 class OAuth2AppNew(grok.View):
@@ -301,6 +345,49 @@ class OAuth2AppNew(grok.View):
 
     def render(self):
         self.redirect(self.url(self.context.new(), 'edit'))
+
+
+class OAuth2Authenticate(grok.LocalUtility):
+    grok.implements(IAuthentication)
+    grok.site(IOAuthSite)
+
+    def authenticate(self, request):
+        print "authenticate called"
+        next = component.queryNextUtility(self, IAuthentication)
+        if next is not None:
+            return next.authenticate(request)
+
+    def unauthenticatedPrincipal(self):
+        pass
+
+    def unauthorized(self, id, request):
+        next = component.queryNextUtility(self, IAuthentication)
+        if next is not None:
+            return next.unauthorized(id, request)
+
+    def getPrincipal(self, id):
+        next = component.queryNextUtility(self, IAuthentication)
+        if next is None:
+            raise PrincipalLookupError(id)
+        return next.getPrincipal(id)
+
+class InstallAuth(grok.View):
+    grok.context(IOAuthSite)
+
+    def render(self):
+
+        self.redirect(self.url(self.context))
+
+class BaLogout(grok.View):
+    ''' A 'basic_auth' logout '''
+    grok.context(component.Interface)
+    grok.require('zope.Public')
+
+    def render(self):
+        self.request.response.setStatus('Unauthorized')   # challenges (logs out) basic auth
+        self.request.response.setHeader('WWW-Authenticate', 'basic realm="Zope"', 1)
+        self.message="You have been logged out"
+        return self.message
 
 
 class OAuth2Viewlet(grok.Viewlet):

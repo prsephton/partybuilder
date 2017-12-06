@@ -23,6 +23,7 @@ setup(name='partybuilder',
                         'grokui.admin',
                         'fanstatic',
                         'zope.fanstatic',
+                        'zope.pluggableauth',
                         'grokcore.chameleon',
                         'grokcore.startup',
                         # Add extra requirements here
