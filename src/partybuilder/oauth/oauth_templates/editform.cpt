@@ -1,0 +1,73 @@
+<form tal:attributes="action path:request/URL" method="post"
+      class="edit-form" enctype="multipart/form-data">
+
+  <fieldset class="form-fieldset">
+
+  <legend i18n:translate=""
+    tal:condition="path:view/label"
+    tal:content="path:view/label">Label</legend>
+
+  <div class="form-status"
+    tal:define="status path:view/status"
+    tal:condition="status">
+
+    <div i18n:translate="" tal:content="structure status">
+      Form status summary
+    </div>
+
+    <ul class="errors" tal:condition="path:view/errors">
+      <li tal:repeat="error path:view/error_views">
+         <span tal:replace="structure error">Error Type</span>
+      </li>
+    </ul>
+  </div>
+
+
+  <div class="form-fields">
+  	<table>
+      <tal:block repeat="widget path:view/widgets">
+        <tr>
+          <td class="label" tal:define="hint path:widget/hint">
+
+            <label tal:condition="python:hint" tal:attributes="for path:widget/name; title hint">
+            	<!--span tal:replace="string:*" tal:condition="widget/required" /-->
+	            <span i18n:translate="" tal:replace="path:widget/label">label</span>
+            </label>
+
+            <label tal:condition="python:not hint" tal:attributes="for path:widget/name">
+            	<!--span tal:replace="string:*" tal:condition="widget/required" /-->
+              	<span i18n:translate="" tal:replace="path:widget/label">label</span>
+            </label>
+
+          </td>
+          <td class="field">
+            <div class="widget" tal:content="structure widget">
+              <input type="text" />
+            </div>
+            <div class="error" tal:condition="path:widget/error">
+              <span tal:replace="structure path:widget/error">error</span>
+            </div>
+            <div class="widgetDisplay" tal:condition="path:widget/display | nothing">
+ 		     	<span tal:replace="structure path:widget/display" />
+ 		     	<button class="fieldInfo"
+ 		     		tal:define="info python:view.fieldInfo(widget)"
+ 		     		tal:condition="info"
+ 		     		tal:content="structure path:info/label"
+ 		     		tal:attributes="onclick string:actionMessage(this, ${info/url})">
+ 		     	</button>
+            </div>
+          </td>
+        </tr>
+      </tal:block>
+  	</table>
+  </div>
+  <input type='hidden' id='camefrom' name='camefrom' tal:condition='path:request/camefrom | path:view/referrer | nothing'
+  		tal:attributes='value path:request/form/camefrom | path:view/referrer' />
+  <div id="actionsView">
+    <span class="actionButtons" tal:condition="path:view/availableActions">
+      <input tal:repeat="action path:view/actions"
+             tal:replace="structure path:action/render" />
+    </span>
+  </div>
+  </fieldset>
+</form>
