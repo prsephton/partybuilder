@@ -1,3 +1,30 @@
+'''
+    Use the oauth2 protocol to identify principals.
+
+    This can be used to implement "login via Google, Twitter, Facebook", etc.
+
+    A set of login links (or pictures) can be produced here by simply including
+    the OAuth2Logins viewlet manager. eg.
+
+        tal:context="structure provider:oauth2logins"
+
+    The details for each OAuth2 authentication service must be filled in by editing
+    the list of "oauth2 applications".  These details are provided by registering a new
+    application with the authorization source (eg. Google).
+
+    To add new sources, define a new token adapter (see 'tokenadapters.py' for reference).
+
+    This module expects to see a site implement the IOAuthSite interface, and an adapter
+    defined which can provide the IOAuthPrincipalSource from the site.
+
+    IOAuthPrincipalSource is a container for principals, and the interface requires
+    new(id) and find(**kw) methods defined as per interfaces.py.  Because it is also
+    an IPrincipalSource, the interface also requires the method: __contains__(self, id).
+
+    IOAuthPrincipal is an extension of IPrincipal, and requires several additional fields
+    that are used during token retrieval.  The retrieved token may be used in sunsequent
+    API calls to the authenticated source.
+'''
 import grok
 import simplejson as json
 from zope import component, schema, location

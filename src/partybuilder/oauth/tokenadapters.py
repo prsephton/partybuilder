@@ -8,7 +8,10 @@ from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import urlencode
 
 class GoogleTokenToUser(grok.Adapter):
-    ''' A google-specific adapter which returns a principal. '''
+    ''' A google-specific adapter which returns a principal. The token
+        passed in is an instance of oauth.TokenRequest.  This should
+        have the info needed to identify the principal.
+    '''
     grok.context(ITokenRequest)
     grok.implements(IOAuthPrincipal)
     grok.name(u'Google')

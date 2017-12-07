@@ -28,7 +28,7 @@ class IOAuthPrincipal(IPrincipal):
 class IOAuthPrincipalSource(IPrincipalSource):
     '''  Provides a searchable list of principals
     '''
-    def new(self):
+    def new(self, id):
         ''' Returns a new (unidentified) principal '''
 
     def find(self, **kw):
