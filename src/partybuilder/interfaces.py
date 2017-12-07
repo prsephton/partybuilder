@@ -1,19 +1,17 @@
 from zope import schema, component
-
+from hiddenwidgets import HiddenInt
+from oauth.interfaces import IOAuthPrincipal
 
 class ILayout(component.Interface):
     ''' Our layout marker interface '''
 
-class IUser(component.Interface):
-    userid = schema.Int(title=u'ID: ')
-    domain = schema.TextLine(title=u'Domain: ', default=u'partybuilder')  # OAuth
-    login = schema.TextLine(title=u'Name: ')
-    secret = schema.Password(title=u'Password: ')
+class IUser(IOAuthPrincipal):
+    userno = HiddenInt(title=u'')
     gw2_apikey = schema.TextLine(title=u'GW2 App Key: ')
     disco_id = schema.TextLine(title=u'Discord ID: ')
 
 class IParty(component.Interface):
-    party_id = schema.Int(title=u'Party ID: ')
+    partyno = HiddenInt(title=u'')
     owner= schema.Int(title=u'Owner ID: ')
     party_name = schema.TextLine(title=u'Party Name: ')
     type = schema.Choice(title=u'Type: ', values=[u'WvW', u'PvE', u'PvP'], default=u'WvW')

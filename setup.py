@@ -27,6 +27,7 @@ setup(name='partybuilder',
                         'grokcore.chameleon',
                         'grokcore.startup',
                         # Add extra requirements here
+                        'zope.app.schema',
                         'gw2api',
                         'six',
                         ],

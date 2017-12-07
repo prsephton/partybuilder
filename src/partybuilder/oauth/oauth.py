@@ -1,32 +1,13 @@
 import grok
 import simplejson as json
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.parse import urlencode
 from zope import component, schema, location
 from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
-from zope.security.interfaces import IPrincipal
-from zope.authentication.interfaces import IAuthentication, PrincipalLookupError
-#from zope.pluggableauth.authentication import PluggableAuthentication
-
-class IOAuthDoneEvent(IObjectEvent):
-    ''' This event is fired when OpenAuth2 returns a request token.
-        The object which is the subject of the event is an instance of
-        TokenRequest.
-        The TokenRequest.__parent__ is an instance of OAuth2App.
-        TokenRequest.info is a dict which contains the access_token.
-
-        We can use @grok.subscribe(IOAuthDoneEvent) to subscribe
-    '''
-
-class IOAuthSite(component.Interface):
-    ''' A marker for sites that want to use OAuth '''
-
-class ITokenRequest(component.Interface):
-    ''' A token request.  We should be able to adapt this to an IPrincipal,
-        using a named adapter.
-    '''
+from zope.authentication.interfaces import IAuthentication, PrincipalLookupError, IPrincipalSource
+from interfaces import IOAuthDoneEvent, IOAuthPrincipal, IOAuthPrincipalSource, IOAuthSite, ITokenRequest
+from six.moves.urllib.request import urlopen
+from six.moves.urllib.parse import urlencode
 
 class OAuth2EditingPermission(grok.Permission):
     ''' A permission for editing OAuth2 apps list '''
@@ -137,7 +118,7 @@ class TokenView(ErrorView):
                 session['info'] = self.context.info
 
                 service = self.context.__parent__.service
-                principal = component.queryAdapter(self.context, IPrincipal, name=service)
+                principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
                 session['principal'] = principal() if principal else None
 
                 # If we get here, we can notify subscribers.
@@ -145,9 +126,10 @@ class TokenView(ErrorView):
             else:
                 self.error = 'State Mismatch'
 
-
 class IOAuthApp(component.Interface):
-    service = schema.TextLine(title=u'Service: ')
+    service = schema.Choice(title=u'Service: ',
+                            description=u'The OAuth2 authenticator source',
+                            vocabulary=u'oauth2.sources')
     icon = schema.Bytes(title=u'Display Icon:', required=False)
     uri = schema.URI(title=u'URI: ')
     client_id = schema.TextLine(title=u'Client ID: ')
@@ -321,6 +303,7 @@ class OAuth2ApplicationsView(grok.View):
         from zope.security import checkPermission
         return checkPermission('OAuth2.editing', self)
 
+
 class OAuth2ApplicationsEdit(grok.View):
     grok.context(OAuth2Applications)
     grok.name('edit')
@@ -346,37 +329,56 @@ class OAuth2AppNew(grok.View):
     def render(self):
         self.redirect(self.url(self.context.new(), 'edit'))
 
-
 class OAuth2Authenticate(grok.LocalUtility):
     grok.implements(IAuthentication)
     grok.site(IOAuthSite)
 
     def authenticate(self, request):
-        print "authenticate called"
-        next = component.queryNextUtility(self, IAuthentication)
-        if next is not None:
-            return next.authenticate(request)
+        ''' We are already authenticated if the session contains a principal. '''
+        sn = ISession(self.request)
+        if 'OAuth2' in sn:
+            sn = sn['OAuth2']
+            return sn['principal'] if 'principal' in sn else None
 
     def unauthenticatedPrincipal(self):
         pass
 
     def unauthorized(self, id, request):
-        next = component.queryNextUtility(self, IAuthentication)
-        if next is not None:
-            return next.unauthorized(id, request)
+        ''' Remove the session item to force re-authentication '''
+        sn = ISession(self.request)
+        if 'OAuth2' in sn:
+            sn = sn['OAuth2']
+            if 'principal' in sn:
+                del sn['principal']
 
     def getPrincipal(self, id):
-        next = component.queryNextUtility(self, IAuthentication)
-        if next is None:
-            raise PrincipalLookupError(id)
-        return next.getPrincipal(id)
+        source = IOAuthPrincipalSource(grok.getSite())
+        principal = source.find(id=id)
+        if len(principal)==1:
+            return principal[0]
+        raise PrincipalLookupError(id)
+
 
 class InstallAuth(grok.View):
+    ''' A view to install or remove the local authentication utility '''
     grok.context(IOAuthSite)
+    grok.require('zope.Public')
 
-    def render(self):
-
+    def render(self, uninstall=False):
+        site = grok.getSite()
+        sm = site.getSiteManager()
+        name = 'OpenAuth2'
+        print "%s" % [k for k in sm.keys()]
+        if uninstall and name in sm.keys():
+            util = sm[name]
+            sm.unregisterUtility(component=util, provided=IAuthentication)
+            del sm[name]
+        elif name not in sm.keys():
+           obj = sm[name] = OAuth2Authenticate()
+           sm.registerUtility(component=obj, provided=IAuthentication)
+           print 'installed'
         self.redirect(self.url(self.context))
+
 
 class BaLogout(grok.View):
     ''' A 'basic_auth' logout '''
