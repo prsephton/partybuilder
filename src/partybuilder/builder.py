@@ -4,17 +4,16 @@ import simplejson as json
 from partybuilder import resource
 from interfaces import IUser, IParty, ILayout
 from zope import component
-from zope.security.interfaces import IPrincipal
 from oauth.interfaces import IOAuthSite, IOAuthPrincipalSource
 from zope.catalog.interfaces import ICatalog
 from zope.schema.fieldproperty import FieldProperty
 
 
 class User(grok.Model):
-    grok.implements(IUser, IPrincipal)
-    id = FieldProperty(IPrincipal['id'])
-    title = FieldProperty(IPrincipal['title'])
-    description = FieldProperty(IPrincipal['description'])
+    grok.implements(IUser)
+    id = FieldProperty(IUser['id'])
+    title = FieldProperty(IUser['title'])
+    description = FieldProperty(IUser['description'])
     userno = FieldProperty(IUser['userno'])
     domain = FieldProperty(IUser['domain'])
     login = FieldProperty(IUser['login'])

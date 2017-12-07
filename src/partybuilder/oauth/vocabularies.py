@@ -12,7 +12,7 @@ class SourcesVocabulary(grok.GlobalUtility):
     def __call__(self, context):
         terms = []
         sm = component.getSiteManager(grok.getSite())
-        adapters = sm.getAdapters(ITokenRequest, IOAuthPrincipal)
+        adapters = sm.adapters.lookupAll((ITokenRequest,), IOAuthPrincipal)
         for name, _a in adapters:
             value  = name
             token  = str(name)
