@@ -1,13 +1,19 @@
-<div id='oauth2ApplicationView'>
-  <p>Login using: </p>
-  <ul>
-  	<li tal:repeat="oa context.values()">
-  		<a tal:attributes="href oa.authentication_uri(request)">
-	  		<img tal:condition="oa.icon"
-	  			tal:attributes="title oa.service; src view.url(oa, '@@iconview')" />
-			<span tal:condition="not:oa.icon" tal:content="oa.service" />
-  		</a>
-  	</li>
-  </ul>
-  <a tal:condition='view.canEdit()' href=".?oauth2editing=1"><button>Edit List</button></a>
+<div class="navbar-nav mr-auto">
+	<div class="row align-items-center">
+		<div class='container col-sm'>
+			<h6>Login: </h6>
+		</div>
+		<div id='oauth2ApplicationView' class='oauth2ApplicationView col-sm'>
+		  <ul class="navbar-nav mr-auto">
+		  	<li class="nav-item" tal:repeat="oa context.values()">
+		  		<a class="nav-link" tal:attributes="href oa.authentication_uri(request)">
+			  		<img tal:condition="oa.icon"
+			  			tal:attributes="title oa.service; src view.url(oa, '@@iconview')" />
+					<span tal:condition="not:oa.icon" tal:content="oa.service" />
+		  		</a>
+		  	</li>
+		  </ul>
+		  <a tal:condition='view.canEdit()' href=".?oauth2editing=1"><button>Edit List</button></a>
+		</div>
+	</div>
 </div>

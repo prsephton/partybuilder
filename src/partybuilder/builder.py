@@ -92,6 +92,7 @@ class Index(grok.View):
     grok.context(ILayout)
 
     def update(self):
+        resource.bootstrap.need()
         resource.style.need()
 
 

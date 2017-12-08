@@ -100,6 +100,7 @@ class TokenRequest(grok.Model):
     }
 
     def __init__(self, uri, client_id="", secret=""):
+        self.uri = uri
         grant_type = "authorization_code"
         self.parms = dict(grant_type=grant_type,
                           client_id=client_id,
@@ -138,7 +139,7 @@ class TokenView(ErrorView):
             if self.context.state == state:
                 self.context.code = code
                 data = urlencode(self.context.parms)
-                res = urlopen(self.context.url, data=data).read()  # should be doing a post
+                res = urlopen(self.context.uri, data=data).read()  # should be doing a post
                 self.context.info = json.loads(res)
                 # Update session information with auth info
                 session = ISession(self.request)['OAuth2']
@@ -150,8 +151,11 @@ class TokenView(ErrorView):
 
                 # If we get here, we can notify subscribers.
                 grok.notify(OAuthDoneEvent(self.context))
+
+                self.redirect(self.url(grok.getApplication()))
             else:
                 self.error = 'State Mismatch'
+
 
 class IOAuthApp(component.Interface):
     service = schema.Choice(title=u'Service: ',
@@ -232,7 +236,7 @@ class OAuth2AppIconView(grok.View):
 
 class OAuth2AppEdit(grok.EditForm):
     grok.context(OAuth2App)
-    grok.require('zope.Public')
+    grok.require('OAuth2.editing')
 
     def update(self):
         ''' record the icon file name here '''
@@ -259,6 +263,7 @@ class OAuth2AppEdit(grok.EditForm):
 class AppEdit(grok.View):
     grok.context(OAuth2App)
     grok.name('edit')
+    grok.require('OAuth2.editing')
 
     def render(self):
         sn = ISession(self.request)['OAuth2']
@@ -268,7 +273,7 @@ class AppEdit(grok.View):
 
 class OAuth2AppDelete(grok.EditForm):
     grok.context(OAuth2App)
-    grok.require('zope.Public')
+    grok.require('OAuth2.editing')
 
     form_fields = grok.Fields(IOAuthApp, for_display=True).select('service', 'client_id')
 
@@ -292,6 +297,7 @@ class OAuth2AppDelete(grok.EditForm):
 class AppDelete(grok.View):
     grok.context(OAuth2App)
     grok.name('delete')
+    grok.require('OAuth2.editing')
 
     def render(self):
         sn = ISession(self.request)['OAuth2']
@@ -326,9 +332,9 @@ class OAuth2ApplicationsView(grok.View):
     grok.require('zope.Public')
 
     def canEdit(self):
-        return True
+#        return True
         from zope.security import checkPermission
-        return checkPermission('OAuth2.editing', self)
+        return checkPermission('OAuth2.editing', grok.getSite())
 
 
 class OAuth2ApplicationsEdit(grok.View):
@@ -389,7 +395,7 @@ class OAuth2Authenticate(grok.LocalUtility):
 class InstallAuth(grok.View):
     ''' A view to install or remove the local authentication utility '''
     grok.context(IOAuthSite)
-    grok.require('zope.Public')
+    grok.require('OAuth2.editing')
 
     def render(self, uninstall=False):
         site = grok.getSite()

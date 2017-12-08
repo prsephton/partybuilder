@@ -1,4 +1,5 @@
-/* This is a silly style sheet solely used for demonstrating fanstatic. */
-body {
-  background-color: #eee;
+
+div.oauth2ApplicationView img {
+  max-width:42px;
+  max-height:42px;
 }
