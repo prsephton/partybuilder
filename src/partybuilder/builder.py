@@ -36,6 +36,7 @@ class Party(grok.Model):
 class Users(grok.Container):
     grok.implements(IUser, ILayout, IOAuthPrincipalSource)
     sequence = 0
+    domain = u'PartyBuilder'
 
     def __init__(self):
         super(Users, self).__init__()

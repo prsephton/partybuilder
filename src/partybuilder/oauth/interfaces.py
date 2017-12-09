@@ -28,6 +28,7 @@ class IOAuthPrincipal(IPrincipal):
 class IOAuthPrincipalSource(IPrincipalSource):
     '''  Provides a searchable list of principals
     '''
+    domain = schema.TextLine(title=u'Default Service: ')
     def new(self, id):
         ''' Returns a new (unidentified) principal '''
 

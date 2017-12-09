@@ -1,36 +1,51 @@
-''' Serve up OAuth authentication from our own site.
-    An initial authentication domain is "test", but we can add others.
+''' Serve up OAuth2 authorization for our own site.
 '''
 import grok, hashlib, os
 from zope import component, schema
 from zope.session.interfaces import ISession
+from zope.schema.fieldproperty import FieldProperty
 from six.moves.urllib.parse import urlencode
 from datetime import datetime as dt
 from datetime import timedelta as td
 
 
 class IUserApplication(component.Interface):
+    '''   An application registered by an existing user
+    '''
     userid = schema.TextLine(title=u'Internal User ID: ')
-    name = schema.TextLine(title=u'Application Name: ')
+    appname = schema.TextLine(title=u'Application Name: ')
     redirect = schema.URI(title=u'Redirect URI: ')
     client_id = schema.TextLine(title=u'Client ID: ')
-    secret = schema.TextLine(title=u'Client ID: ')
+    secret = schema.TextLine(title=u'Secret: ')
+
+
+class IUserGrant(component.Interface):
+    ''' A user grant associated with a specific client_id.
+    '''
+    access_token = schema.TextLine(title=u'Access Token: ')
+    refresh_token = schema.TextLine(title=u'Refresh Token: ')
+    auth_token = schema.TextLine(title=u'Authorization Token: ')
+    expires_after = schema.Datetime(title=u'Expires: ')
     scope = schema.TextLine(title=u'Scope(s): ')
+    offline_ok = schema.Bool(title=u'Offline OK: ', default=False)
 
 
-class UserApplication(grok.Model):
-    ''' Carries the information which defines a specific user application. '''
+class UserApplication(grok.Container):
+    ''' Carries the information which defines a specific user application. 
+        An application may contain numerous grants
+    '''
     grok.implements(IUserApplication)
-    userid = schema.fieldproperty.FieldProperty(IUserApplication['userid'])
-    name = schema.fieldproperty.FieldProperty(IUserApplication['name'])
-    redirect = schema.fieldproperty.FieldProperty(IUserApplication['redirect'])
-    client_id = schema.fieldproperty.FieldProperty(IUserApplication['client_id'])
-    secret = schema.fieldproperty.FieldProperty(IUserApplication['secret'])
-    scope = schema.fieldproperty.FieldProperty(IUserApplication['scope'])
+    userid = FieldProperty(IUserApplication['userid'])
+    appname = FieldProperty(IUserApplication['appname'])
+    redirect = FieldProperty(IUserApplication['redirect'])
+    client_id = FieldProperty(IUserApplication['client_id'])
+    secret = FieldProperty(IUserApplication['secret'])
 
 
 class UserApplications(grok.Container):
-    ''' Contains registered OAuth2 applications with user keys. '''
+    ''' Contains registered OAuth2 applications with client ID as keys. 
+        One registered user may have numerous applications defined
+    '''
     seq = 0
 
     def gen_client_id(self):
