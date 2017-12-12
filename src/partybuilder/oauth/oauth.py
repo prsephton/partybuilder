@@ -100,12 +100,12 @@ class TokenRequest(grok.Model):
              "access_type": "offline"
     }
 
-    def __init__(self, uri, client_id="", secret=""):
+    def __init__(self, uri, client_id="", client_secret=""):
         self.uri = uri
         grant_type = "authorization_code"
         self.parms = dict(grant_type=grant_type,
                           client_id=client_id,
-                          client_secret=secret)
+                          client_secret=client_secret)
 
     def set_redirect_uri(self, uri):
         self.parms['redirect_uri'] = uri
@@ -200,7 +200,7 @@ class OAuth2App(grok.Model):
         self.state = str(randint(0, 1000))
         self.token = TokenRequest(self.token_uri,
                                   client_id=self.client_id,
-                                  secret=self.secret)
+                                  client_secret=self.secret)
         location.locate(self.token, self, 'token')
         redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))  # exchange code for token
         redirect_uri = redirect_uri.replace("http:", "https:")
