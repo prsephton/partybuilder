@@ -96,7 +96,8 @@ class TokenRequest(grok.Model):
              "token_type": None,
              "expires_in": 0,
              "refresh_token": None,
-             "id_token": None
+             "id_token": None,
+             "access_type": "offline"
     }
 
     def __init__(self, uri, client_id="", secret=""):
@@ -139,10 +140,10 @@ class TokenView(ErrorView):
             token = self.context.__parent__
             if token.state == state:
                 self.context.code = code
-                data = json.dumps(self.context.parms)
-#                data = urlencode(self.context.parms)
-#                print "opening %s[%s]" % (self.context.uri, data)
-                req = Request(self.context.uri, data, {'Content-Type': 'application/json'})
+                data = urlencode(self.context.parms)
+                uri = 'https://accounts.google.com/o/oauth2/v4/token'
+                req = Request(self.context.uri, data)
+                req.addHeader({'Content-Type', 'application/x-www-form-urlencoded'})
                 res = urlopen(req).read()  # should be doing a post
                 self.context.info = json.loads(res)
                 # Update session information with auth info
@@ -166,8 +167,8 @@ class IOAuthApp(component.Interface):
                             description=u'The OAuth2 authenticator source',
                             vocabulary=u'oauth2.sources')
     icon = schema.Bytes(title=u'Display Icon:', required=False)
-    uri = schema.URI(title=u'URI: ')
-#    redirect_uri = schema.URI(title=u'Redirect URI: ')
+    auth_uri = schema.URI(title=u'Auth URI: ')
+    token_uri = schema.URI(title=u'Token URI: ')
     client_id = schema.TextLine(title=u'Client ID: ')
     secret = schema.TextLine(title=u'Secret: ')
     scope = schema.TextLine(title=u'Scope(s): ')
@@ -179,8 +180,8 @@ class OAuth2App(grok.Model):
     service = ""
     icon = None
     icon_filename = None
-    uri = ""
-#    redirect_uri = ""
+    auth_uri = ""
+    token_uri = ""
     client_id = None
     secret = None
     scope = None
@@ -195,13 +196,13 @@ class OAuth2App(grok.Model):
 
     def authentication_uri(self, request):
         self.state = str(randint(0, 1000))
-        self.token = TokenRequest(self.uri,
+        self.token = TokenRequest(self.token_uri,
                                   client_id=self.client_id,
                                   secret=self.secret)
         location.locate(self.token, self, 'token')
         redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))  # exchange code for token
         redirect_uri = redirect_uri.replace("http:", "https:")
-        self.authorize = Authorization(self.uri,
+        self.authorize = Authorization(self.auth_uri,
                                        redirect_uri=redirect_uri,
                                        client_id=self.client_id,
                                        scope=self.scope,
