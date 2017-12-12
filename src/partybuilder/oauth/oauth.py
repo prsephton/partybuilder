@@ -143,7 +143,7 @@ class TokenView(ErrorView):
                 data = urlencode(self.context.parms)
                 uri = 'https://accounts.google.com/o/oauth2/v4/token'
                 req = Request(self.context.uri, data)
-                req.add_header({'Content-Type', 'application/x-www-form-urlencoded'})
+                req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                 res = urlopen(req).read()  # should be doing a post
                 self.context.info = json.loads(res)
                 # Update session information with auth info
