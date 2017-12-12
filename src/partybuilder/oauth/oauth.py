@@ -412,7 +412,7 @@ class OAuth2Authenticate(grok.LocalUtility):
 
 
 class AuthLogoutSupported(grok.Adapter):
-    grok.context(OAuth2Authenticate)
+    grok.context(IOAuthSite)
     grok.implements(ILogoutSupported)
 
     def __new__(self, context):
@@ -420,7 +420,7 @@ class AuthLogoutSupported(grok.Adapter):
 
 
 class Logout(grok.Form):
-    grok.context(Interface)
+    grok.context(component.Interface)
 
     @grok.action(u'Logout')
     def logout(self):
