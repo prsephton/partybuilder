@@ -62,7 +62,7 @@ class FacebookTokenToUser(grok.Adapter):
     def __new__(self, token):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
-        uid = "Facebook.{}".format(token.info['id_token'])
+        uid = u"Facebook.{}".format(users.sequence)
 
         found = users.find(id=uid)
         if len(found)==0:
@@ -87,7 +87,7 @@ class TwitterTokenToUser(grok.Adapter):
     def __new__(self, token):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
-        uid = "Twitter.{}".format(token.info['id_token'])
+        uid = u"Twitter.{}".format(users.sequence)
 
         found = users.find(id=uid)
         if len(found)==0:
@@ -112,7 +112,7 @@ class LinkedInTokenToUser(grok.Adapter):
     def __new__(self, token):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
-        uid = "Twitter.{}".format(token.info['id_token'])
+        uid = u"Twitter.{}".format(users.sequence)
 
         found = users.find(id=uid)
         if len(found)==0:
@@ -137,7 +137,7 @@ class RedditTokenToUser(grok.Adapter):
     def __new__(self, token):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
-        uid = "Reddit.{}".format(token.info['id_token'])
+        uid = u"Reddit.{}".format(users.sequence)
 
         found = users.find(id=uid)
         if len(found)==0:
@@ -162,7 +162,7 @@ class GithubTokenToUser(grok.Adapter):
     def __new__(self, token):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
-        uid = "GitHub.{}".format(token.info['id_token'])
+        uid = u"GitHub.{}".format(users.sequence)
 
         found = users.find(id=uid)
         if len(found)==0:
@@ -187,7 +187,7 @@ class InstagramTokenToUser(grok.Adapter):
     def __new__(self, token):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
-        uid = "Instagram.{}".format(token.info['id_token'])
+        uid = u"Instagram.{}".format(users.sequence)
 
         found = users.find(id=uid)
         if len(found)==0:
@@ -212,7 +212,7 @@ class MixerTokenToUser(grok.Adapter):
     def __new__(self, token):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
-        uid = "Mixer.{}".format(token.info['id_token'])
+        uid = u"Mixer.{}".format(users.sequence)
 
         found = users.find(id=uid)
         if len(found)==0:
