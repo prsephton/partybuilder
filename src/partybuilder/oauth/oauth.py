@@ -105,7 +105,7 @@ class TokenRequest(grok.Model):
         grant_type = "authorization_code"
         self.parms = dict(grant_type=grant_type,
                           client_id=client_id,
-                          secret=secret)
+                          client_secret=secret)
 
     def set_redirect_uri(self, uri):
         self.parms['redirect_uri'] = uri
