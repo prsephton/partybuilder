@@ -33,7 +33,7 @@ from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
 from zope.authentication.interfaces import IAuthentication, PrincipalLookupError, IPrincipalSource
 from interfaces import IOAuthDoneEvent, IOAuthPrincipal, IOAuthPrincipalSource, IOAuthSite, ITokenRequest
-from six.moves.urllib.request import urlopen
+from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 
 class OAuth2EditingPermission(grok.Permission):
@@ -140,7 +140,8 @@ class TokenView(ErrorView):
             if token.state == state:
                 self.context.code = code
                 data = urlencode(self.context.parms)
-                res = urlopen(self.context.uri, data=data).read()  # should be doing a post
+                req = Request(self.context.uri)
+                res = urlopen(req, data=data).read()  # should be doing a post
                 self.context.info = json.loads(res)
                 # Update session information with auth info
                 session = ISession(self.request)['OAuth2']
