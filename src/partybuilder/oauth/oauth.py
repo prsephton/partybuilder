@@ -31,7 +31,7 @@ from zope import component, schema, location
 from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
-from interfaces import (IOAuthDoneEvent, IOAuthPrincipal,
+from interfaces import (IOAuthDoneEvent, IOAuthPrincipal, IUnauthenticatedPrincipal,
                         IOAuthSite, ITokenRequest)
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
