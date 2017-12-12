@@ -383,7 +383,7 @@ class OAuth2Authenticate(grok.LocalUtility):
     def authenticate(self, request):
         ''' We are already authenticated if the session contains a principal. '''
         print 'authenticate called'
-        sn = ISession(self.request)
+        sn = ISession(request)
         if 'OAuth2' in sn:
             sn = sn['OAuth2']
             if 'principal' in sn:
