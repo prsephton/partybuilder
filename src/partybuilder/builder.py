@@ -91,6 +91,7 @@ class UserIndex(grok.Indexes):
 
 class Index(grok.View):
     grok.context(ILayout)
+    grok.require('zope.Public')
 
     def update(self):
         resource.bootstrap.need()
