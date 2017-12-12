@@ -163,6 +163,7 @@ class IOAuthApp(component.Interface):
                             vocabulary=u'oauth2.sources')
     icon = schema.Bytes(title=u'Display Icon:', required=False)
     uri = schema.URI(title=u'URI: ')
+#    redirect_uri = schema.URI(title=u'Redirect URI: ')
     client_id = schema.TextLine(title=u'Client ID: ')
     secret = schema.TextLine(title=u'Secret: ')
     scope = schema.TextLine(title=u'Scope(s): ')
@@ -175,6 +176,7 @@ class OAuth2App(grok.Model):
     icon = None
     icon_filename = None
     uri = ""
+#    redirect_uri = ""
     client_id = None
     secret = None
     scope = None
@@ -194,6 +196,7 @@ class OAuth2App(grok.Model):
                                   secret=self.secret)
         location.locate(self.token, self, 'token')
         redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))  # exchange code for token
+        redirect_uri = redirect_uri.replace("http:", "https:")
         self.authorize = Authorization(self.uri,
                                        redirect_uri=redirect_uri,
                                        client_id=self.client_id,
@@ -302,7 +305,7 @@ class AppDelete(grok.View):
     def render(self):
         sn = ISession(self.request)['OAuth2']
         sn['form'] = (self.context, 'oauth2appdelete')
-        self.redirect('../..')
+        self.redirect(self.url(self.context.__parent__.__parent__))
 
 
 #_______________________________________________________________________
