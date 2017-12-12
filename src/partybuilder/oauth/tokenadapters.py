@@ -40,7 +40,8 @@ class GoogleTokenToUser(grok.Adapter):
             if len(found)==0:
                 user = users.new(id=uid)
             else:
-                user = found.first()
+                user = list(found)[0]
+
             user.authInfo = token.info
             user.title = unicode(res['name'])
             user.description = u'{} {}'.format(res['given_name'], res['family_name'])
@@ -66,7 +67,7 @@ class FacebookTokenToUser(grok.Adapter):
         if len(found)==0:
             user = users.new(id=uid)
         else:
-            user = found.first()
+            user = list(found)[0]
 
         user.authInfo = token.info
         user.domain = u'Facebook'
@@ -91,7 +92,7 @@ class TwitterTokenToUser(grok.Adapter):
         if len(found)==0:
             user = users.new(id=uid)
         else:
-            user = found.first()
+            user = list(found)[0]
 
         user.authInfo = token.info
         user.domain = u'Twitter'
@@ -116,7 +117,7 @@ class LinkedInTokenToUser(grok.Adapter):
         if len(found)==0:
             user = users.new(id=uid)
         else:
-            user = found.first()
+            user = list(found)[0]
 
         user.authInfo = token.info
         user.domain = u'LinkedIn'
@@ -141,7 +142,7 @@ class RedditTokenToUser(grok.Adapter):
         if len(found)==0:
             user = users.new(id=uid)
         else:
-            user = found.first()
+            user = list(found)[0]
 
         user.authInfo = token.info
         user.domain = u'Reddit'
@@ -166,7 +167,7 @@ class GithubTokenToUser(grok.Adapter):
         if len(found)==0:
             user = users.new(id=uid)
         else:
-            user = found.first()
+            user = list(found)[0]
 
         user.authInfo = token.info
         user.domain = u'GitHub'
@@ -191,7 +192,7 @@ class InstagramTokenToUser(grok.Adapter):
         if len(found)==0:
             user = users.new(id=uid)
         else:
-            user = found[0]
+            user = list(found)[0]
 
         user.authInfo = token.info
         user.domain = u'Instagram'
@@ -216,7 +217,7 @@ class MixerTokenToUser(grok.Adapter):
         if len(found)==0:
             user = users.new(id=uid)
         else:
-            user = found[0]
+            user = list(found)[0]
 
         user.authInfo = token.info
         user.domain = u'Mixer'
