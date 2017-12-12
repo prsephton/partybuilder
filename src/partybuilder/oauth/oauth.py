@@ -140,8 +140,8 @@ class TokenView(ErrorView):
             if token.state == state:
                 self.context.code = code
                 data = urlencode(self.context.parms)
-                req = Request(self.context.uri, data, method='POST')
-                res = urlopen(req).read()  # should be doing a post
+                print "opening %s[%s]" % (self.context.uri, data)
+                res = urlopen(self.context.uri, data).read()  # should be doing a post
                 self.context.info = json.loads(res)
                 # Update session information with auth info
                 session = ISession(self.request)['OAuth2']
