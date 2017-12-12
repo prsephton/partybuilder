@@ -7,7 +7,7 @@
 '''
 import grok
 from interfaces import ITokenRequest, IOAuthPrincipal, IOAuthPrincipalSource
-from six.moves.urllib.request import urlopen, Request
+from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import urlencode
 
 
@@ -34,7 +34,7 @@ class GoogleTokenToUser(grok.Adapter):
         user.authInfo = token.info
 
         url = u"https://www.googleapis.com/userinfo/v2/me"
-        req = Request(url, method='POST')
+        req = Request(url)
         req.add_header("Authorization", "{} {}".format(token.info['token_type'],
                                                        token.info['access_token']))
         res = urlopen(req).read()
