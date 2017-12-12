@@ -2,7 +2,7 @@
 	<div tal:condition='not:viewlet.oauth.editmode' tal:replace="structure path:viewlet/oauth/@@index"></div>
 	<div tal:condition='viewlet.oauth.editmode' tal:replace="structure path:viewlet/oauth/@@edit"></div>
 </div>
-<div class="navbar-nav mr-auto" tal:condition="path:viewlet/authenticated">
-	<p>Welcome, <span tal:replace="path:viewlet/title"></span></p>
-	<form tal:replace='structure path:viewlet/logoutform'></form>
+<div class="navbar-nav mr-auto container" tal:condition="path:viewlet/authenticated">
+	<p class='row'>Welcome, <span tal:replace="path:viewlet/title"></span></p>
+	<div class='row'><form tal:replace='structure path:viewlet/logoutform'></form></div>
 </div>
