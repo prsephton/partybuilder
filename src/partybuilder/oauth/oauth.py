@@ -428,6 +428,7 @@ class Logout(grok.Form):
         sm = site.getSiteManager()
         auth = sm.getUtility(IAuthentication)
         auth.unauthorized(None, self.request)
+        self.redirect(self.request.URL)
 
 
 class BaLogout(grok.View):
