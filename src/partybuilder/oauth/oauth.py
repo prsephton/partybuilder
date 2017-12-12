@@ -31,8 +31,10 @@ from zope import component, schema, location
 from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
-from zope.authentication.interfaces import IAuthentication, PrincipalLookupError, IPrincipalSource
-from interfaces import IOAuthDoneEvent, IOAuthPrincipal, IOAuthPrincipalSource, IOAuthSite, ITokenRequest
+from zope.authentication.interfaces import (IAuthentication, PrincipalLookupError,
+                                            IPrincipalSource, IUnauthenticatedPrincipal)
+from interfaces import (IOAuthDoneEvent, IOAuthPrincipal, IOAuthPrincipalSource,
+                        IOAuthSite, ITokenRequest)
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 
@@ -141,8 +143,8 @@ class TokenView(ErrorView):
             if token.state == state:
                 self.context.code = code
                 data = urlencode(self.context.parms)
-                print "----------------------------------------------------"
-                print "url=[%s]; data=[%s]" % (self.context.uri, data)
+#                 print "----------------------------------------------------"
+#                 print "url=[%s]; data=[%s]" % (self.context.uri, data)
                 req = Request(self.context.uri)
                 req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                 req.add_data(data)
@@ -443,6 +445,15 @@ class OAuth2Viewlet(grok.Viewlet):
     grok.context(component.Interface)  # Can be installed anywhere
     grok.viewletmanager(OAuth2Logins)
     grok.require('zope.Public')
+
+    def authenticated(self):
+        if IUnauthenticatedPrincipal.providedBy(self.request.principal):
+            return False
+        return True
+
+    def title(self):
+        if not IUnauthenticatedPrincipal.providedBy(self.request.principal):
+            return self.request.principal.title
 
     def update(self):
         app = grok.getApplication()
