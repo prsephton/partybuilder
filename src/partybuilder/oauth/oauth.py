@@ -378,6 +378,9 @@ class OAuth2AppNew(grok.View):
 
 class UnauthenticatedPrincipal(object):
     grok.implements(IUnauthenticatedPrincipal)
+    id = None
+    title = u'Unauthenticated'
+    description = u'An Unauthenicated Principal'
 
 class OAuth2Authenticate(grok.LocalUtility):
     grok.implements(IAuthentication)
