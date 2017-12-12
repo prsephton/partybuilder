@@ -353,6 +353,8 @@ class OAuth2ApplicationsView(grok.View):
     grok.require('zope.Public')
 
     def canEdit(self):
+        if self.request.principal.id == 'zope.manager':
+            return True
 #        return True
         from zope.security import checkPermission
         return checkPermission('OAuth2.editing', grok.getSite())
