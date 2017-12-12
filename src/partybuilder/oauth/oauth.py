@@ -31,12 +31,7 @@ from zope import component, schema, location
 from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
-from zope.authentication.interfaces import (IAuthentication, PrincipalLookupError,
-                                            IPrincipalSource, IUnauthenticatedPrincipal,
-                                            ILogoutSupported)
-from zope.authentication.logout import LogoutSupported
-
-from interfaces import (IOAuthDoneEvent, IOAuthPrincipal, IOAuthPrincipalSource,
+from interfaces import (IOAuthDoneEvent, IOAuthPrincipal,
                         IOAuthSite, ITokenRequest)
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
@@ -44,6 +39,7 @@ from six.moves.urllib.parse import urlencode
 class OAuth2EditingPermission(grok.Permission):
     ''' A permission for editing OAuth2 apps list '''
     grok.name(u'OAuth2.editing')
+
 
 class OAuth2Logins(grok.ViewletManager):
     ''' embed with tal:context="structure provider:oauth2logins" '''
@@ -92,6 +88,7 @@ class Authorization(grok.Model):
 
 
 class TokenRequest(grok.Model):
+    ''' Represents a token exchange request. '''
     grok.implements(ITokenRequest)
 
     uri = ""
@@ -125,6 +122,7 @@ class TokenRequest(grok.Model):
 
 
 class OAuthDoneEvent(ObjectEvent):
+    ''' An event that gets triggered after successful authorization '''
     grok.implements(IOAuthDoneEvent)
 
 
@@ -169,6 +167,7 @@ class TokenView(ErrorView):
 
 
 class IOAuthApp(component.Interface):
+    ''' Defines fields needed for oauth2 app registration '''
     service = schema.Choice(title=u'Service: ',
                             description=u'The OAuth2 authenticator source',
                             vocabulary=u'oauth2.sources')
@@ -206,7 +205,9 @@ class OAuth2App(grok.Model):
                                   client_id=self.client_id,
                                   client_secret=self.secret)
         location.locate(self.token, self, 'token')
-        redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))  # exchange code for token
+        
+        # exchange the code for a token
+        redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))  
         redirect_uri = redirect_uri.replace("http:", "https:")
         self.authorize = Authorization(self.auth_uri,
                                        redirect_uri=redirect_uri,
@@ -249,6 +250,7 @@ class OAuth2AppIconView(grok.View):
 
 
 class OAuth2AppEdit(grok.EditForm):
+    ''' A form containing editable fields for oauth2 apps '''
     grok.context(OAuth2App)
     grok.require('OAuth2.editing')
 
@@ -275,6 +277,7 @@ class OAuth2AppEdit(grok.EditForm):
 
 
 class AppEdit(grok.View):
+    ''' A view to edit a registered oauth2 app. '''
     grok.context(OAuth2App)
     grok.name('edit')
     grok.require('OAuth2.editing')
@@ -286,6 +289,7 @@ class AppEdit(grok.View):
 
 
 class OAuth2AppDelete(grok.EditForm):
+    ''' A form to display confirming deletion '''
     grok.context(OAuth2App)
     grok.require('OAuth2.editing')
 
@@ -309,6 +313,7 @@ class OAuth2AppDelete(grok.EditForm):
 
 
 class AppDelete(grok.View):
+    ''' A view that deletes a registered OAuth2 app '''
     grok.context(OAuth2App)
     grok.name('delete')
     grok.require('OAuth2.editing')
@@ -341,6 +346,7 @@ class OAuth2Applications(grok.Container):
 
 
 class OAuth2ApplicationsView(grok.View):
+    ''' A view that lists the set of defined oath2 login links  '''
     grok.context(OAuth2Applications)
     grok.name('index')
     grok.require('zope.Public')
@@ -352,6 +358,7 @@ class OAuth2ApplicationsView(grok.View):
 
 
 class OAuth2ApplicationsEdit(grok.View):
+    ''' A view to edit the list of oath2 applications '''
     grok.context(OAuth2Applications)
     grok.name('edit')
     grok.require('OAuth2.editing')
@@ -375,69 +382,6 @@ class OAuth2AppNew(grok.View):
 
     def render(self):
         self.redirect(self.url(self.context.new(), 'edit'))
-
-class UnauthenticatedPrincipal(object):
-    grok.implements(IUnauthenticatedPrincipal)
-    id = u''
-    title = u'Unauthenticated'
-    description = u'An Unauthenicated Principal'
-
-class OAuth2Authenticate(grok.LocalUtility):
-    grok.implements(IAuthentication)
-    grok.site(IOAuthSite)
-
-    def authenticate(self, request):
-        ''' We are already authenticated if the session contains a principal. '''
-        print 'authenticate called'
-        sn = ISession(request)['OAuth2']
-        if 'principal' in sn.keys():
-            return sn['principal']
-
-    def unauthenticatedPrincipal(self):
-        return UnauthenticatedPrincipal()
-
-    def unauthorized(self, id, request):
-        ''' Remove the session item to force re-authentication '''
-        sn = ISession(request)['OAuth2']
-        if 'principal' in sn.keys():
-            del sn['principal']
-
-    def getPrincipal(self, id):
-        print 'getprincipal called: %s' % id
-        source = IOAuthPrincipalSource(grok.getSite())
-        principal = source.find(id=id)
-        if len(principal)==1:
-            return principal[0]
-        raise PrincipalLookupError(id)
-
-
-class AuthLogoutSupported(grok.Adapter):
-    grok.context(IOAuthSite)
-    grok.implements(ILogoutSupported)
-
-    def __new__(self, context):
-        return LogoutSupported()
-
-
-class InstallAuth(grok.View):
-    ''' A view to install or remove the local authentication utility '''
-    grok.context(IOAuthSite)
-    grok.require('OAuth2.editing')
-
-    def render(self, uninstall=False):
-        site = grok.getSite()
-        sm = site.getSiteManager()
-        name = 'OpenAuth2'
-        print "%s" % [k for k in sm.keys()]
-        if uninstall and name in sm.keys():
-            util = sm[name]
-            sm.unregisterUtility(component=util, provided=IAuthentication)
-            del sm[name]
-        elif name not in sm.keys():
-           obj = sm[name] = OAuth2Authenticate()
-           sm.registerUtility(component=obj, provided=IAuthentication)
-           print 'installed'
-        self.redirect(self.url(self.context))
 
 
 class OAuth2Viewlet(grok.Viewlet):
