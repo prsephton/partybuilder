@@ -268,7 +268,7 @@ class AppEdit(grok.View):
     def render(self):
         sn = ISession(self.request)['OAuth2']
         sn['form'] = (self.context, 'oauth2appedit')
-        self.redirect('../..')
+        self.redirect(self.url(self.context.__parent__.__parent__))
 
 
 class OAuth2AppDelete(grok.EditForm):
