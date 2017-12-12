@@ -10,3 +10,4 @@
 *.pyc
 /google.oauth
 /versions.cfg
+/.eggs/
