@@ -383,23 +383,19 @@ class OAuth2Authenticate(grok.LocalUtility):
     def authenticate(self, request):
         ''' We are already authenticated if the session contains a principal. '''
         print 'authenticate called'
-        sn = ISession(request)
-        if 'OAuth2' in sn.keys():
-            sn = sn['OAuth2']
-            if 'principal' in sn.keys():
-                request.principal = sn['principal']
-                return sn['principal']
+        sn = ISession(request)['OAuth2']
+        if 'principal' in sn.keys():
+            request.principal = sn['principal']
+            return sn['principal']
 
     def unauthenticatedPrincipal(self):
         pass
 
     def unauthorized(self, id, request):
         ''' Remove the session item to force re-authentication '''
-        sn = ISession(self.request)
-        if 'OAuth2' in sn.keys():
-            sn = sn['OAuth2']
-            if 'principal' in sn.keys():
-                del sn['principal']
+        sn = ISession(self.request)['OAuth2']
+        if 'principal' in sn.keys():
+            del sn['principal']
 
     def getPrincipal(self, id):
         print 'getprincipal called: %s' % id
