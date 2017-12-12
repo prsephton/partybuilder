@@ -430,6 +430,18 @@ class Logout(grok.Form):
         auth.unauthorized(None, self.request)
 
 
+class BaLogout(grok.View):
+    ''' A 'basic_auth' logout '''
+    grok.context(component.Interface)
+    grok.require('zope.Public')
+
+    def render(self):
+        self.request.response.setStatus('Unauthorized')   # challenges (logs out) basic auth
+        self.request.response.setHeader('WWW-Authenticate', 'basic realm="Zope"', 1)
+        self.message="You have been logged out"
+        return self.message
+
+
 class InstallAuth(grok.View):
     ''' A view to install or remove the local authentication utility '''
     grok.context(IOAuthSite)
@@ -449,18 +461,6 @@ class InstallAuth(grok.View):
            sm.registerUtility(component=obj, provided=IAuthentication)
            print 'installed'
         self.redirect(self.url(self.context))
-
-
-class BaLogout(grok.View):
-    ''' A 'basic_auth' logout '''
-    grok.context(component.Interface)
-    grok.require('zope.Public')
-
-    def render(self):
-        self.request.response.setStatus('Unauthorized')   # challenges (logs out) basic auth
-        self.request.response.setHeader('WWW-Authenticate', 'basic realm="Zope"', 1)
-        self.message="You have been logged out"
-        return self.message
 
 
 class OAuth2Viewlet(grok.Viewlet):
@@ -483,7 +483,8 @@ class OAuth2Viewlet(grok.Viewlet):
             return self.request.principal.title
 
     def logoutform(self):
-        return component.getMultiAdapter((self.context, self.request), name='logout')
+        form = component.getMultiAdapter((self.context, self.request), name='logout')
+        return form()
 
     def update(self):
         app = grok.getApplication()
