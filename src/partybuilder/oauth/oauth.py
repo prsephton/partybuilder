@@ -376,6 +376,9 @@ class OAuth2AppNew(grok.View):
     def render(self):
         self.redirect(self.url(self.context.new(), 'edit'))
 
+class UnauthenticatedPrincipal(object):
+    grok.implements(IUnauthenticatedPrincipal)
+
 class OAuth2Authenticate(grok.LocalUtility):
     grok.implements(IAuthentication)
     grok.site(IOAuthSite)
@@ -388,7 +391,7 @@ class OAuth2Authenticate(grok.LocalUtility):
             return sn['principal']
 
     def unauthenticatedPrincipal(self):
-        pass
+        return UnauthenticatedPrincipal()
 
     def unauthorized(self, id, request):
         ''' Remove the session item to force re-authentication '''
@@ -455,10 +458,10 @@ class OAuth2Viewlet(grok.Viewlet):
     grok.require('zope.Public')
 
     def authenticated(self):
-        return False
-#         if IUnauthenticatedPrincipal.providedBy(self.request.principal):
-#             return False
-#         return True
+#        return False
+        if IUnauthenticatedPrincipal.providedBy(self.request.principal):
+            return False
+        return True
 
     def title(self):
         if self.authenticated:
