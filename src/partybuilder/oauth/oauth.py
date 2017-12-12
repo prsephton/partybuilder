@@ -385,7 +385,6 @@ class OAuth2Authenticate(grok.LocalUtility):
         print 'authenticate called'
         sn = ISession(request)['OAuth2']
         if 'principal' in sn.keys():
-            request.principal = sn['principal']
             return sn['principal']
 
     def unauthenticatedPrincipal(self):
