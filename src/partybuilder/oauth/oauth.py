@@ -392,7 +392,7 @@ class OAuth2Authenticate(grok.LocalUtility):
 
     def unauthorized(self, id, request):
         ''' Remove the session item to force re-authentication '''
-        sn = ISession(self.request)['OAuth2']
+        sn = ISession(request)['OAuth2']
         if 'principal' in sn.keys():
             del sn['principal']
 
