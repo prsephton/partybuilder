@@ -410,6 +410,7 @@ class OAuth2Authenticate(grok.LocalUtility):
             return principal[0]
         raise PrincipalLookupError(id)
 
+
 class AuthLogoutSupported(grok.Adapter):
     grok.context(OAuth2Authenticate)
     grok.implements(ILogoutSupported)
@@ -417,6 +418,13 @@ class AuthLogoutSupported(grok.Adapter):
     def __new__(self, context):
         return LogoutSupported()
 
+
+class Logout(grok.Form):
+    grok.context(Interface)
+
+    @grok.action(u'Logout')
+    def logout(self):
+        pass
 
 class InstallAuth(grok.View):
     ''' A view to install or remove the local authentication utility '''

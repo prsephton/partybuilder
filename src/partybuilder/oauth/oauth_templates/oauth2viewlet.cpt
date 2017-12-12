@@ -4,4 +4,5 @@
 </div>
 <div class="navbar-nav mr-auto" tal:condition="path:viewlet/authenticated">
 	<p>Welcome, <span tal:replace="path:viewlet/title"></span></p>
+	<form tal:replace='path:viewlet/logoutform'></form>
 </div>
