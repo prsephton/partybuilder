@@ -136,7 +136,8 @@ class TokenView(ErrorView):
         ''' Either code or error is defined here if this is in response to Authorization '''
         super(TokenView, self).update(**args)
         if code is not None:
-            if self.context.state == state:
+            token = self.context.__parent__
+            if token.state == state:
                 self.context.code = code
                 data = urlencode(self.context.parms)
                 res = urlopen(self.context.uri, data=data).read()  # should be doing a post
