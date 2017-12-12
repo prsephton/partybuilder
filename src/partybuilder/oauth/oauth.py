@@ -143,8 +143,9 @@ class TokenView(ErrorView):
                 data = urlencode(self.context.parms)
                 print "----------------------------------------------------"
                 print "url=[%s]; data=[%s]" % (self.context.uri, data)
-                req = Request(self.context.uri, data)
+                req = Request(self.context.uri)
                 req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+                req.add_data(data)
                 res = urlopen(req).read()  # should be doing a post
                 self.context.info = json.loads(res)
                 # Update session information with auth info
