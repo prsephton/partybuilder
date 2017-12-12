@@ -398,8 +398,8 @@ class OAuth2Viewlet(grok.Viewlet):
 #        return False
         if IUnauthenticatedPrincipal.providedBy(self.request.principal):
             return False
-        print "ID is: %s" % self.request.principal.id
-        if self.request.principal.id == 'zope.Manager':
+#        print "ID is: %s" % self.request.principal.id
+        if self.request.principal.id == 'zope.manager':
             return False
         return True
 
