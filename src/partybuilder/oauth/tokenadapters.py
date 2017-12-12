@@ -6,6 +6,7 @@
     does not already exist.
 '''
 import grok
+import simplejson as json
 from interfaces import ITokenRequest, IOAuthPrincipal, IOAuthPrincipalSource
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
