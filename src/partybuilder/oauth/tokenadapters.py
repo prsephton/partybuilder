@@ -42,11 +42,11 @@ class GoogleTokenToUser(grok.Adapter):
             else:
                 user = found[0]
             user.authInfo = token.info
-            user.title = res['name']
+            user.title = unicode(res['name'])
             user.description = u'{} {}'.format(res['given_name'], res['family_name'])
             user.domain = u'Google'
-            user.login = token.info['id_token']
-            user.secret = token.info['access_token']
+            user.login = unicode(token.info['id_token'])
+            user.secret = unicode(token.info['access_token'])
             return user
 
 
