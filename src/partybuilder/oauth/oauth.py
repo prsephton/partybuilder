@@ -466,7 +466,7 @@ class OAuth2Viewlet(grok.Viewlet):
 #         return True
 
     def title(self):
-        if not IUnauthenticatedPrincipal.providedBy(self.request.principal):
+        if self.authenticated:
             return self.request.principal.title
 
     def update(self):

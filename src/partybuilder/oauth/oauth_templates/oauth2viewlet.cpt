@@ -1,7 +1,7 @@
-<div tal:omit-tag="" tal:condition="path:viewlet/authenticated">
+<div tal:omit-tag="" tal:condition="not:path:viewlet/authenticated">
 	<div tal:condition='not:viewlet.oauth.editmode' tal:replace="structure path:viewlet/oauth/@@index"></div>
 	<div tal:condition='viewlet.oauth.editmode' tal:replace="structure path:viewlet/oauth/@@edit"></div>
 </div>
-<div class="navbar-nav mr-auto" tal:condition="not:path:viewlet/authenticated">
+<div class="navbar-nav mr-auto" tal:condition="path:viewlet/authenticated">
 	<p>Welcome, <span tal:replace="path:viewlet/title"></span></p>
 </div>
