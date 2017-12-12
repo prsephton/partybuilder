@@ -32,7 +32,10 @@ from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
 from zope.authentication.interfaces import (IAuthentication, PrincipalLookupError,
-                                            IPrincipalSource, IUnauthenticatedPrincipal)
+                                            IPrincipalSource, IUnauthenticatedPrincipal,
+                                            ILogoutSupported)
+from zope.authentication.logout import LogoutSupported
+
 from interfaces import (IOAuthDoneEvent, IOAuthPrincipal, IOAuthPrincipalSource,
                         IOAuthSite, ITokenRequest)
 from six.moves.urllib.request import urlopen, Request
@@ -41,7 +44,6 @@ from six.moves.urllib.parse import urlencode
 class OAuth2EditingPermission(grok.Permission):
     ''' A permission for editing OAuth2 apps list '''
     grok.name(u'OAuth2.editing')
-
 
 class OAuth2Logins(grok.ViewletManager):
     ''' embed with tal:context="structure provider:oauth2logins" '''
@@ -400,12 +402,19 @@ class OAuth2Authenticate(grok.LocalUtility):
                 del sn['principal']
 
     def getPrincipal(self, id):
-        print 'getprincipal called'
+        print 'getprincipal called: %s' % id
         source = IOAuthPrincipalSource(grok.getSite())
         principal = source.find(id=id)
         if len(principal)==1:
             return principal[0]
         raise PrincipalLookupError(id)
+
+class AuthLogoutSupported(grok.Adapter):
+    grok.context(OAuth2Authenticate)
+    grok.implements(ILogoutSupported)
+
+    def __new__(self, context):
+        return LogoutSupported()
 
 
 class InstallAuth(grok.View):
@@ -451,9 +460,10 @@ class OAuth2Viewlet(grok.Viewlet):
     grok.require('zope.Public')
 
     def authenticated(self):
-        if IUnauthenticatedPrincipal.providedBy(self.request.principal):
-            return False
-        return True
+        return False
+#         if IUnauthenticatedPrincipal.providedBy(self.request.principal):
+#             return False
+#         return True
 
     def title(self):
         if not IUnauthenticatedPrincipal.providedBy(self.request.principal):
