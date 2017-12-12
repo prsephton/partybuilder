@@ -482,6 +482,9 @@ class OAuth2Viewlet(grok.Viewlet):
         if self.authenticated:
             return self.request.principal.title
 
+    def logoutform(self):
+        return component.getMultiAdapter((self.context, self.request), name='logout')
+
     def update(self):
         app = grok.getApplication()
         if 'oauth2Applications' in app.keys():
