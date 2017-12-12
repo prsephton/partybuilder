@@ -20,6 +20,7 @@ class Login(grok.Model):
 
 
 class LoginView(grok.Form):
+    ''' A password based login vies '''
     grok.context(component.Interface)
     grok.name('login')
     form_fields = grok.Fields(ILoginFields)    
@@ -44,7 +45,9 @@ class LoginView(grok.Form):
 
 
 class Logout(grok.Form):
+    ''' A logout form for ordinary authentication utilities '''
     grok.context(component.Interface)
+    grok.require('zope.Public')
 
     @grok.action(u'Logout')
     def logout(self):
