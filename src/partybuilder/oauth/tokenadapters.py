@@ -23,7 +23,7 @@ class GoogleTokenToUser(grok.Adapter):
     def __new__(self, token):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
-        uid = "Google.{}".format(token.info['id_token'])
+        uid = u"Google.{}".format(users.sequence)
 
         found = users.find(id=uid)
         if len(found)==0:
