@@ -33,7 +33,7 @@ from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
 from interfaces import (IOAuthDoneEvent, IOAuthPrincipal, 
                         IOAuthSite, ITokenRequest)
-from zope.authentication.interfaces import IUnauthenticatedPrincipal
+from zope.authentication.interfaces import IUnauthenticatedPrincipal, IAuthentication
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 
