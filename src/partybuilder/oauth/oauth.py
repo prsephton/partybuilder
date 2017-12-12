@@ -424,7 +424,11 @@ class Logout(grok.Form):
 
     @grok.action(u'Logout')
     def logout(self):
-        pass
+        site = grok.getSite()
+        sm = site.getSiteManager()
+        auth = sm.getUtility(IAuthentication)
+        auth.unauthorized(None, self.request)
+
 
 class InstallAuth(grok.View):
     ''' A view to install or remove the local authentication utility '''
