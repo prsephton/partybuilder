@@ -6,7 +6,7 @@ from zope.session.interfaces import ISession
 from interfaces import IOAuthPrincipalSource
 from zope.password.interfaces import IPasswordManager
 from zope.schema.fieldproperty import FieldProperty
-
+from zope.authentication.interfaces import IAuthentication
 
 class ILoginFields(component.Interface):
     login = schema.TextLine(title=u'Login: ')
