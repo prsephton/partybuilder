@@ -141,7 +141,8 @@ class TokenView(ErrorView):
             if token.state == state:
                 self.context.code = code
                 data = urlencode(self.context.parms)
-                uri = 'https://accounts.google.com/o/oauth2/v4/token'
+                print "----------------------------------------------------"
+                print "url=[%s]; data=[%s]" % (self.context.uri, data)
                 req = Request(self.context.uri, data)
                 req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                 res = urlopen(req).read()  # should be doing a post
