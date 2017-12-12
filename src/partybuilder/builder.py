@@ -22,7 +22,7 @@ class User(grok.Model):
     disco_id = FieldProperty(IUser['disco_id'])
 
     def __init__(self, userno, id=None):
-        self.userno = userno
+        self.userno = int(userno)
         self.id = id
 
 
