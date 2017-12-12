@@ -142,7 +142,8 @@ class TokenView(ErrorView):
                 data = json.dumps(self.context.parms)
 #                data = urlencode(self.context.parms)
 #                print "opening %s[%s]" % (self.context.uri, data)
-                res = urlopen(self.context.uri, data, {'Content-Type': 'application/json'}).read()  # should be doing a post
+                req = Request(self.context.uri, data, {'Content-Type': 'application/json'})
+                res = urlopen(req).read()  # should be doing a post
                 self.context.info = json.loads(res)
                 # Update session information with auth info
                 session = ISession(self.request)['OAuth2']
