@@ -419,30 +419,6 @@ class AuthLogoutSupported(grok.Adapter):
         return LogoutSupported()
 
 
-class Logout(grok.Form):
-    grok.context(component.Interface)
-
-    @grok.action(u'Logout')
-    def logout(self):
-        site = grok.getSite()
-        sm = site.getSiteManager()
-        auth = sm.getUtility(IAuthentication)
-        auth.unauthorized(None, self.request)
-        self.redirect(self.request.URL)
-
-
-class BaLogout(grok.View):
-    ''' A 'basic_auth' logout '''
-    grok.context(component.Interface)
-    grok.require('zope.Public')
-
-    def render(self):
-        self.request.response.setStatus('Unauthorized')   # challenges (logs out) basic auth
-        self.request.response.setHeader('WWW-Authenticate', 'basic realm="Zope"', 1)
-        self.message="You have been logged out"
-        return self.message
-
-
 class InstallAuth(grok.View):
     ''' A view to install or remove the local authentication utility '''
     grok.context(IOAuthSite)
