@@ -31,7 +31,7 @@ from zope import component, schema, location
 from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
-from interfaces import (IOAuthDoneEvent, IOAuthPrincipal, 
+from interfaces import (IOAuthDoneEvent, IOAuthPrincipal,
                         IOAuthSite, ITokenRequest)
 from zope.authentication.interfaces import IUnauthenticatedPrincipal, IAuthentication
 from six.moves.urllib.request import urlopen, Request
@@ -206,9 +206,9 @@ class OAuth2App(grok.Model):
                                   client_id=self.client_id,
                                   client_secret=self.secret)
         location.locate(self.token, self, 'token')
-        
+
         # exchange the code for a token
-        redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))  
+        redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))
         redirect_uri = redirect_uri.replace("http:", "https:")
         self.authorize = Authorization(self.auth_uri,
                                        redirect_uri=redirect_uri,
@@ -399,9 +399,6 @@ class OAuth2Viewlet(grok.Viewlet):
     def authenticated(self):
 #        return False
         if IUnauthenticatedPrincipal.providedBy(self.request.principal):
-            return False
-#        print "ID is: %s" % self.request.principal.id
-        if self.request.principal.id == 'zope.manager':
             return False
         return True
 
