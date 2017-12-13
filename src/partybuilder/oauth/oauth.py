@@ -403,7 +403,7 @@ class OAuth2Viewlet(grok.Viewlet):
         return True
 
     def title(self):
-        if self.authenticated:
+        if self.authenticated():
             return self.request.principal.title
 
     def logoutform(self):
