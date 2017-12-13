@@ -51,6 +51,43 @@ class GoogleTokenToUser(grok.Adapter):
             return user
 
 
+class TwitterTokenToUser(grok.Adapter):
+    ''' A token user for Twitter
+    '''
+    grok.context(ITokenRequest)
+    grok.implements(IOAuthPrincipal)
+    grok.name(u'Twitter')
+
+    def __new__(self, token):
+        app = grok.getApplication()
+        users = IOAuthPrincipalSource(app)
+        uri = "https://api.twitter.com/1.1/account/verify_credentials.json"
+
+        req = Request(url)
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Authorization", "{} {}".format(token.info['token_type'],
+                                                       token.info['access_token']))
+        res = urlopen(req).read()
+        if res: res = json.loads(res)
+        if res is None:
+            return None
+        else:
+            print "result=%s" % res
+            uid = u"Twitter.{}".format(res['id'])
+
+            found = users.find(id=uid)
+            if len(found)==0:
+                user = users.new(id=uid)
+            else:
+                user = list(found)[0]
+
+            user.authInfo = token.info
+            user.domain = u'Twitter'
+            user.login = uid
+            user.secret = token.info['access_token']
+            return user
+
+
 class FacebookTokenToUser(grok.Adapter):
     ''' A token user for Facebook
     '''
@@ -71,31 +108,6 @@ class FacebookTokenToUser(grok.Adapter):
 
         user.authInfo = token.info
         user.domain = u'Facebook'
-        user.login = token.info['id_token']
-        user.secret = token.info['access_token']
-        return user
-
-
-class TwitterTokenToUser(grok.Adapter):
-    ''' A token user for Twitter
-    '''
-    grok.context(ITokenRequest)
-    grok.implements(IOAuthPrincipal)
-    grok.name(u'Twitter')
-
-    def __new__(self, token):
-        app = grok.getApplication()
-        users = IOAuthPrincipalSource(app)
-        uid = u"Twitter.{}".format(users.sequence)
-
-        found = users.find(id=uid)
-        if len(found)==0:
-            user = users.new(id=uid)
-        else:
-            user = list(found)[0]
-
-        user.authInfo = token.info
-        user.domain = u'Twitter'
         user.login = token.info['id_token']
         user.secret = token.info['access_token']
         return user
