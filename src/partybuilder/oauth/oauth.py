@@ -140,7 +140,7 @@ class V2TokenView(ErrorView):
 
     def update(self, code=None, state=None, **args):
         ''' Either code or error is defined here if this is in response to Authorization '''
-        super(TokenView, self).update(**args)
+        super(V2TokenView, self).update(**args)
         if code is not None:
             token = self.context.__parent__
             if token.state == state:
