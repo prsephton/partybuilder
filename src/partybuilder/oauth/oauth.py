@@ -136,6 +136,7 @@ class V2TokenView(ErrorView):
     '''
     grok.context(V2TokenRequest)
     grok.require('zope.Public')
+    grok.name('tokenview')
 
     def update(self, code=None, state=None, **args):
         ''' Either code or error is defined here if this is in response to Authorization '''
