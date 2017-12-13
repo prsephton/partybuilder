@@ -6,7 +6,7 @@
 		<div id='oauth2ApplicationView' class='oauth2ApplicationView col-sm'>
 		  <ul class="navbar-nav mr-auto">
 		  	<li class="nav-item" tal:repeat="oa context.values()">
-		  		<a class="nav-link" tal:attributes="href oa.authentication_uri(request)">
+		  		<a class="btn btn-outline-primary nav-link" role="button" tal:attributes="href oa.authentication_uri(request)">
 			  		<img tal:condition="oa.icon"
 			  			tal:attributes="title oa.service; src view.url(oa, '@@iconview')" />
 					<span tal:condition="not:oa.icon" tal:content="oa.service" />
