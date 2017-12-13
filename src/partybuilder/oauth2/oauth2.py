@@ -153,7 +153,7 @@ class V1AuthView(grok.View):
     grok.context(V1TokenRequest)
     grok.name('oauthenticate')
 
-    def update(self):
+    def render(self):
         data = urlencode(self.context.parms)
 #         print "----------------------------------------------------"
 #         print "url=[%s]; data=[%s]" % (self.context.uri, data)
@@ -164,6 +164,8 @@ class V1AuthView(grok.View):
         self.context.info = json.loads(res)
         # Expect oauth_token, oauth_token_secret, oauth_callback_confirmed
         # Redirect with parameter: oauth_token (optional)
+        return ''
+
 
 class V2TokenView(ErrorView):
     ''' Once we have an auth code, we can issue a POST to the
