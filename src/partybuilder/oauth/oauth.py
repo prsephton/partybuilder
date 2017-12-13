@@ -184,7 +184,7 @@ class IOAuth2App(component.Interface):
 
 class OAuth2App(grok.Model):
     ''' Represents an OAuth2 application instance '''
-    grok.implements(IO2AuthApp)
+    grok.implements(IOAuth2App)
     service = FieldProperty(IOAuth2App['service'])
     authtype = FieldProperty(IOAuth2App['authtype'])
     icon = None
