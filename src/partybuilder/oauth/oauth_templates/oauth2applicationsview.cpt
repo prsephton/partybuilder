@@ -13,6 +13,7 @@
 		  		</a>
 		  	</li>
 		  </ul>
+		  <a tal:condition='view.canEdit()' href=".?oauth2editing=1"><button>Edit List</button></a>
 		</div>
 	</div>
 </div>
