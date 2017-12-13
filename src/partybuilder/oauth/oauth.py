@@ -69,7 +69,7 @@ class ErrorView(grok.View):
             self.error_uri = error_uri
 
 
-class Authorization(grok.Model):
+class V2Authorization(grok.Model):
     ''' An authorization request kicks off the oauth2 process. '''
     uri = ""
     parms = {}
@@ -89,7 +89,7 @@ class Authorization(grok.Model):
         return  """{}?{}""".format(self.uri, parms)
 
 
-class TokenRequest(grok.Model):
+class V2TokenRequest(grok.Model):
     ''' Represents a token exchange request. '''
     grok.implements(ITokenRequest)
 
@@ -128,13 +128,13 @@ class OAuthDoneEvent(ObjectEvent):
     grok.implements(IOAuthDoneEvent)
 
 
-class TokenView(ErrorView):
+class V2TokenView(ErrorView):
     ''' Once we have an auth code, we can issue a POST to the
         authorization server and exchange the code for a token.
         The token will be used in API requests until it expires,
         and we can use a refresh_token to refresh the token.
     '''
-    grok.context(TokenRequest)
+    grok.context(V2TokenRequest)
     grok.require('zope.Public')
 
     def update(self, code=None, state=None, **args):
@@ -203,21 +203,27 @@ class OAuth2App(grok.Model):
     def __init__(self, app_id):
         self.app_id = app_id
 
+    def v1_authentication_uri(self, request):
+        pass
+
     def authentication_uri(self, request):
+        if self.authtype==u"OAuth-1":
+            return self.v1_authentication_uri(request)
+
         self.state = str(randint(0, 1000))
-        self.token = TokenRequest(self.token_uri,
-                                  client_id=self.client_id,
-                                  client_secret=self.secret)
+        self.token = V2TokenRequest(self.token_uri,
+                                    client_id=self.client_id,
+                                    client_secret=self.secret)
         location.locate(self.token, self, 'token')
 
         # exchange the code for a token
         redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))
         redirect_uri = redirect_uri.replace("http:", "https:")
-        self.authorize = Authorization(self.auth_uri,
-                                       redirect_uri=redirect_uri,
-                                       client_id=self.client_id,
-                                       scope=self.scope,
-                                       state=self.state)
+        self.authorize = V2Authorization(self.auth_uri,
+                                         redirect_uri=redirect_uri,
+                                         client_id=self.client_id,
+                                         scope=self.scope,
+                                         state=self.state)
         location.locate(self.authorize, self, 'authorize')
         self.token.set_redirect_uri(redirect_uri)
         return self.authorize.get_uri()
