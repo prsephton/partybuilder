@@ -37,6 +37,7 @@ from zope.authentication.interfaces import IUnauthenticatedPrincipal, IAuthentic
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 from zope.schema.fieldproperty import FieldProperty
+from datetime import datetime as dt
 
 class OAuth2EditingPermission(grok.Permission):
     ''' A permission for editing OAuth2 apps list '''
@@ -89,6 +90,25 @@ class V2Authorization(grok.Model):
         return  """{}?{}""".format(self.uri, parms)
 
 
+class V1TokenRequest(grok.Model):
+    grok.implements(ITokenRequest)
+    parms = {}
+    nonce = 0
+
+    def __init__(self, uri, consumer_key="", consumer_secret="", oauth_callback=""):
+        self.uri = uri
+        oauth_timestamp = (dt.now() - dt.fromordinal(0)).total_seconds()
+        oauth_nonce = self.nonce = self.nonce + 1
+
+        self.parms = dict(consumer_key=consumer_key,
+                          oauth_signature_method=oauth_signature_method,
+                          oauth_signature=oauth_signature,
+                          oauth_timestamp=oauth_timestamp,
+                          oauth_nonce=oauth_nonce,
+                          oauth_callback=oauth_callback
+                         )
+
+
 class V2TokenRequest(grok.Model):
     ''' Represents a token exchange request. '''
     grok.implements(ITokenRequest)
@@ -127,6 +147,23 @@ class OAuthDoneEvent(ObjectEvent):
     ''' An event that gets triggered after successful authorization '''
     grok.implements(IOAuthDoneEvent)
 
+
+class V1AuthView(grok.View):
+    ''' Retrieve request token+secret, redirect browser to auth site. '''
+    grok.context(V1TokenRequest)
+    grok.name('oauthenticate')
+
+    def update(self):
+        data = urlencode(self.context.parms)
+#         print "----------------------------------------------------"
+#         print "url=[%s]; data=[%s]" % (self.context.uri, data)
+        req = Request(self.context.uri)
+        req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        req.add_data(data)
+        res = urlopen(req).read()  # should be doing a post
+        self.context.info = json.loads(res)
+        # Expect oauth_token, oauth_token_secret, oauth_callback_confirmed
+        # Redirect with parameter: oauth_token (optional)
 
 class V2TokenView(ErrorView):
     ''' Once we have an auth code, we can issue a POST to the
