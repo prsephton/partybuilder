@@ -6,7 +6,9 @@
 		<div class='row'><p>Welcome, <span tal:replace="path:viewlet/title"></span></p></div>
 		<div class='row'><form tal:replace='structure path:viewlet/logoutform'></form></div>
 		<div class='row'>
-			<a tal:condition='viewlet.canEdit()' href=".?oauth2editing=1"><button>Edit List</button></a>
+			<a tal:condition='viewlet.canEdit()' href=".?oauth2editing=1">
+				<button>OAuth2 Applications</button>
+			</a>
 		</div>
 	</div>
 </div>
