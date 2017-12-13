@@ -1,7 +1,7 @@
 <div class="navbar-nav mr-auto">
 	<div class="row align-items-center">
 		<div class='container col-sm'>
-			<p>Login:</p>
+			<span>Login:</span>
 		</div>
 		<div id='oauth2ApplicationView' class='oauth2ApplicationView col-sm'>
 		  <ul class="navbar-nav mr-auto">
