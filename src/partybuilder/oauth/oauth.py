@@ -36,6 +36,7 @@ from interfaces import (IOAuthDoneEvent, IOAuthPrincipal,
 from zope.authentication.interfaces import IUnauthenticatedPrincipal, IAuthentication
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
+from zope.schema.fieldproperty import FieldProperty
 
 class OAuth2EditingPermission(grok.Permission):
     ''' A permission for editing OAuth2 apps list '''
@@ -167,23 +168,25 @@ class TokenView(ErrorView):
                 self.error = 'State Mismatch'
 
 
-class IOAuthApp(component.Interface):
+class IOAuth2App(component.Interface):
     ''' Defines fields needed for oauth2 app registration '''
     service = schema.Choice(title=u'Service: ',
                             description=u'The OAuth2 authenticator source',
                             vocabulary=u'oauth2.sources')
+    authtype = schema.Choice(title=u'Type:', values=[u'OAuth-1', u'OAuth-2'], default=u'OAuth-2')
     icon = schema.Bytes(title=u'Display Icon:', required=False)
-    auth_uri = schema.URI(title=u'Auth URI: ')
-    token_uri = schema.URI(title=u'Token URI: ')
-    client_id = schema.TextLine(title=u'Client ID: ')
-    secret = schema.TextLine(title=u'Secret: ')
-    scope = schema.TextLine(title=u'Scope(s): ')
+    auth_uri = schema.URI(title=u'Auth URI: ', required=False)
+    token_uri = schema.URI(title=u'Token URI: ', required=False)
+    client_id = schema.TextLine(title=u'Client ID: ', required=False)
+    secret = schema.TextLine(title=u'Secret: ', required=False)
+    scope = schema.TextLine(title=u'Scope(s): ', required=False)
 
 
 class OAuth2App(grok.Model):
     ''' Represents an OAuth2 application instance '''
-    grok.implements(IOAuthApp)
-    service = ""
+    grok.implements(IO2AuthApp)
+    service = FieldProperty(IOAuth2App['service'])
+    authtype = FieldProperty(IOAuth2App['authtype'])
     icon = None
     icon_filename = None
     auth_uri = ""
