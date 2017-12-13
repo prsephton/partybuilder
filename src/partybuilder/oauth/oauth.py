@@ -297,7 +297,7 @@ class OAuth2AppDelete(grok.EditForm):
     grok.context(OAuth2App)
     grok.require('OAuth2.editing')
 
-    form_fields = grok.Fields(IOAuthApp, for_display=True).select('service', 'client_id')
+    form_fields = grok.Fields(IOAuth2App, for_display=True).select('service', 'client_id')
 
     def finish(self):
         sn = ISession(self.request)['OAuth2']
