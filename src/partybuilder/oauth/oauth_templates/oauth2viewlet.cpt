@@ -3,7 +3,7 @@
 		 tal:replace="structure path:viewlet/oauth/@@index">
 	</div>
 	<div tal:omit-tag="" tal:condition="path:viewlet/authenticated">
-		<div class='row'><p>Welcome, <span tal:replace="path:viewlet/title"></span></p></div>
+		<div class='row'><span>Welcome, <span tal:replace="path:viewlet/title"></span></span></div>
 		<div class='row'><form tal:replace='structure path:viewlet/logoutform'></form></div>
 		<div class='row'>
 			<a tal:condition='viewlet.canEdit()' href=".?oauth2editing=1">
