@@ -406,6 +406,13 @@ class OAuth2Viewlet(grok.Viewlet):
         if self.authenticated():
             return self.request.principal.title
 
+    def canEdit(self):
+        if self.request.principal.id == 'zope.manager':
+            return True
+#        return True
+        from zope.security import checkPermission
+        return checkPermission('OAuth2.editing', grok.getSite())
+
     def logoutform(self):
         form = component.getMultiAdapter((self.context, self.request), name='logout')
         return form()
