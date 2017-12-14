@@ -30,6 +30,7 @@ setup(name='partybuilder',
                         'zope.app.schema',
                         'gw2api',
                         'six',
+                        'oauthlib',
                         ],
       entry_points={
           'fanstatic.libraries': [

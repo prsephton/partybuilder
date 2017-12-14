@@ -19,7 +19,7 @@
   <body style="margin:1em">
   	<div class="navbar navbar-expand-lg fixed-top navbar-light bg-light">
 		<div class="page-header"><h1>GW2 Party Builder</h1></div>
-		<div class="nav navbar-nav ml-auto" tal:content="structure provider:oauth2logins"></div>
+		<div class="nav navbar-nav ml-auto" tal:content="structure provider:oauthlogins"></div>
 	</div>
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->

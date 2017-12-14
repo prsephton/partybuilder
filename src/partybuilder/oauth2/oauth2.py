@@ -38,16 +38,22 @@ from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 from zope.schema.fieldproperty import FieldProperty
 from datetime import datetime as dt
+from oauthlib import oauth1
 
 class OAuth2EditingPermission(grok.Permission):
     ''' A permission for editing OAuth2 apps list '''
     grok.name(u'OAuth2.editing')
 
 
-class OAuth2Logins(grok.ViewletManager):
+class OAuthLogins(grok.ViewletManager):
     ''' embed with tal:context="structure provider:oauth2logins" '''
     grok.context(component.Interface)
     grok.require('zope.Public')
+
+
+class OAuthDoneEvent(ObjectEvent):
+    ''' An event that gets triggered after successful authorization '''
+    grok.implements(IOAuthDoneEvent)
 
 
 class ErrorView(grok.View):
@@ -70,6 +76,94 @@ class ErrorView(grok.View):
             self.error_uri = error_uri
 
 
+class V1AccessToken(grok.Model):
+    grok.implements(ITokenRequest)
+    parms = {}
+
+    def __init__(self, client_key='',
+                 client_secret='',
+                 oauth_token='',
+                 oauth_token_secret='',
+                 verifier=''):
+        self.parms = dict(client_key=client_key, client_secret=client_secret,
+                          resource_owner_key=oauth_token,
+                          resource_owner_secret=oauth_token_secret,
+                          verifier=verifier)
+
+
+class V1RequestToken(grok.Model):
+    parms = {}
+    req_token_uri = None
+    auth_uri = None
+    access = None
+    grok.traversable('access')
+
+    def __init__(self, req_token_uri, auth_uri,
+                 consumer_key="", consumer_secret=""):
+        super(V1RequestToken, self).__init__()
+        self.req_token_uri = req_token_uri
+        self.auth_uri = auth_uri
+        self.parms = dict(client_key=consumer_key, client_secret=consumer_key)
+        self.update_access()
+
+    def client(self, request):
+        self.parms['callback_uri'] = str(grok.url(request, self, name='@@access_token'))
+        return oauth1.Client(**self.parms)
+
+    def update_access(self, **kw):
+        self.access = V1AccessToken(**kw)
+        location.locate(self.access, self, 'access')
+
+    def process(self, res):
+        ''' Expect oauth_token, oauth_token_secret, oauth_callback_confirmed '''
+        self.info = json.loads(res)
+        kw = self.parms.copy()
+        kw.update(self.info)
+        self.update_access(**kw)
+
+
+class V1RequestTokenView(grok.View):
+    ''' Retrieve request token+secret, redirect browser to auth site. '''
+    grok.context(V1RequestToken)
+    grok.name('request_token')
+
+    def render(self):
+        client = self.context.client(self.request)
+        uri, headers, body = client.sign(self.context.request_token_uri)
+
+        req = Request(uri)
+        for h, v in headers:
+            req.add_header(h, v)
+        req.add_data(body)
+        res = urlopen(req).read()  # should be doing a post
+
+        access = self.context.process(res)
+#        Redirect with parameter: oauth_token (optional)
+        data = dict(oauth_token=access.parms['oauth_token'])
+        url = "{}?{}".format(self.context.auth_uri, urlencode(data))
+        self.redirect(url)
+        return 'Please visit: %s' % str(url)
+
+
+class V1AccessView(grok.View):
+    grok.context(V1RequestToken)
+    grok.name('access_token')
+
+    def render(self, **kw):
+        access = self.context.access
+        acecss.parms.update(kw)
+
+        session = ISession(self.request)['OAuth2']
+        session['info'] = access.info
+
+        service = self.context.__parent__.service
+        principal = component.queryAdapter(access, IOAuthPrincipal, name=service)
+        session['principal'] = principal if principal else None
+
+        grok.notify(OAuthDoneEvent(self.context.access))
+        self.redirect(self.url(grok.getApplication()))
+
+
 class V2Authorization(grok.Model):
     ''' An authorization request kicks off the oauth2 process. '''
     uri = ""
@@ -88,25 +182,6 @@ class V2Authorization(grok.Model):
     def get_uri(self):
         parms = "&".join(["{}={}".format(k,v) for k,v in self.parms.items()])
         return  """{}?{}""".format(self.uri, parms)
-
-
-class V1TokenRequest(grok.Model):
-    grok.implements(ITokenRequest)
-    parms = {}
-    nonce = 0
-
-    def __init__(self, uri, consumer_key="", consumer_secret="", oauth_callback=""):
-        self.uri = uri
-        oauth_timestamp = (dt.now() - dt.fromordinal(0)).total_seconds()
-        oauth_nonce = self.nonce = self.nonce + 1
-
-        self.parms = dict(consumer_key=consumer_key,
-                          oauth_signature_method=oauth_signature_method,
-                          oauth_signature=oauth_signature,
-                          oauth_timestamp=oauth_timestamp,
-                          oauth_nonce=oauth_nonce,
-                          oauth_callback=oauth_callback
-                         )
 
 
 class V2TokenRequest(grok.Model):
@@ -141,30 +216,6 @@ class V2TokenRequest(grok.Model):
     def code(self, code):
         self.parms['code'] = code
         self._p_changed = True
-
-
-class OAuthDoneEvent(ObjectEvent):
-    ''' An event that gets triggered after successful authorization '''
-    grok.implements(IOAuthDoneEvent)
-
-
-class V1AuthView(grok.View):
-    ''' Retrieve request token+secret, redirect browser to auth site. '''
-    grok.context(V1TokenRequest)
-    grok.name('oauthenticate')
-
-    def render(self):
-        data = urlencode(self.context.parms)
-#         print "----------------------------------------------------"
-#         print "url=[%s]; data=[%s]" % (self.context.uri, data)
-        req = Request(self.context.uri)
-        req.add_header('Content-Type', 'application/x-www-form-urlencoded')
-        req.add_data(data)
-        res = urlopen(req).read()  # should be doing a post
-        self.context.info = json.loads(res)
-        # Expect oauth_token, oauth_token_secret, oauth_callback_confirmed
-        # Redirect with parameter: oauth_token (optional)
-        return ''
 
 
 class V2TokenView(ErrorView):
