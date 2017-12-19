@@ -1,5 +1,5 @@
 import grok
-from zope.authentication.logout import LogoutSupported
+from zope.authentication.logout import LogoutSupported, ILogout
 from zope.authentication.interfaces import (IUnauthenticatedPrincipal, ILogoutSupported,
                                             IAuthentication, PrincipalLookupError,
                                             IPrincipalSource)
