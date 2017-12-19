@@ -242,7 +242,6 @@ class V2TokenView(ErrorView):
                 req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                 req.add_data(data)
                 res = urlopen(req).read()  # should be doing a post
-                print "result is: %s" % res
                 
                 self.context.info = json.loads(res)
                 # Update session information with auth info
@@ -251,7 +250,7 @@ class V2TokenView(ErrorView):
 
                 service = self.context.__parent__.service
                 principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
-                session['principal'] = principal if principal else None
+                session['principal'] = principal(self.context) if principal else None
 
                 # If we get here, we can notify subscribers.
                 grok.notify(OAuthDoneEvent(self.context))
