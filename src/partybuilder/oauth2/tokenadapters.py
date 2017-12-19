@@ -102,9 +102,11 @@ class FacebookTokenToUser(grok.Adapter):
         url = u"https://graph.facebook.com/me"
         print "User token info found: %s" % token.info
         req = Request(url)
+        
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "{} {}".format(token.info['token_type'],
                                                        token.info['access_token']))
+        req.add_data(dict(access_token=token.info['access_token']))
         res = urlopen(req).read()
         if res: res = json.loads(res)
         if res is None:
