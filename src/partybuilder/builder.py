@@ -4,7 +4,7 @@ import simplejson as json
 from partybuilder import resource
 from interfaces import IUser, IParty, ILayout
 from zope import component
-from oauth.interfaces import IOAuthSite, IOAuthPrincipalSource
+from oauth2.interfaces import IOAuthSite, IOAuthPrincipalSource
 from zope.catalog.interfaces import ICatalog
 from zope.schema.fieldproperty import FieldProperty
 
