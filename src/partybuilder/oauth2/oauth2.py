@@ -170,14 +170,14 @@ class V2Authorization(grok.Model):
     parms = {}
 
     def __init__(self, uri, client_id="",
-                 redirect_uri="", scope="",
+                 redirect_uri="", scope=u"",
                  state=""):
         self.uri=uri
         self.parms = dict(response_type = "code",
                           client_id = client_id,
                           redirect_uri = redirect_uri,
                           state = state)
-        if type(scope) is str and len(scope):
+        if type(scope) is not None and len(scope):
             self.parms['scope'] = scope
 
     def get_uri(self):
