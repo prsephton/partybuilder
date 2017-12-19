@@ -242,6 +242,8 @@ class V2TokenView(ErrorView):
                 req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                 req.add_data(data)
                 res = urlopen(req).read()  # should be doing a post
+                print "result is: %s" % res
+                
                 self.context.info = json.loads(res)
                 # Update session information with auth info
                 session = ISession(self.request)['OAuth2']
