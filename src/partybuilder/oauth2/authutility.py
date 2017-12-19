@@ -61,7 +61,7 @@ class AuthLogoutSupported(grok.Adapter):
     grok.implements(ILogoutSupported)
 
     def __new__(self, context):
-        return LogoutSupported()
+        return LogoutSupported(context)
 
 
 class InstallAuth(grok.View):
