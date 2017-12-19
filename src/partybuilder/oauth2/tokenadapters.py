@@ -106,7 +106,8 @@ class FacebookTokenToUser(grok.Adapter):
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "{} {}".format(token.info['token_type'],
                                                        token.info['access_token']))
-        req.add_data(urlencode(dict(access_token=token.info['access_token'])))
+        req.add_data(urlencode(dict(access_token=token.info['access_token'],
+                                    fields='id,name,first_name,last_name')))
         res = urlopen(req).read()
         if res: res = json.loads(res)
         if res is None:
@@ -122,7 +123,7 @@ class FacebookTokenToUser(grok.Adapter):
 
             user.authInfo = token.info
             user.title = unicode(res['name'])
-            user.description = u'{} {}'.format(res['given_name'], res['family_name'])
+            user.description = u'{} {}'.format(res['first_name'], res['last_name'])
             user.domain = u'Facebook'
             user.login = unicode(token.info['id_token'])
             user.secret = unicode(token.info['access_token'])
