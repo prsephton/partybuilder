@@ -54,10 +54,10 @@ class Logout(grok.Form):
     @grok.action(u'Logout')
     def logout(self):
         site = grok.getSite()
-        if not queryAdapter(site, ILogoutSupported):
-            self.redirect(self,url(self.context, '@@balogout'))
         sm = site.getSiteManager()
         auth = sm.getUtility(IAuthentication)
+        if not queryAdapter(auth, ILogoutSupported):
+            self.redirect(self,url(self.context, '@@balogout'))
         ILogout(auth).logout(self.request)
         self.redirect(self.request.URL)
 

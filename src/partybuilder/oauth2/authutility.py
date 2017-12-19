@@ -57,7 +57,7 @@ class Logout(grok.Adapter):
         
 class AuthLogoutSupported(grok.Adapter):
     ''' An adapter that says our authentication utility supports logout '''
-    grok.context(IOAuthSite)
+    grok.context(OAuth2Authenticate)
     grok.implements(ILogoutSupported)
 
     def __new__(self, context):
