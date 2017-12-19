@@ -42,7 +42,7 @@ class OAuth2Authenticate(grok.LocalUtility):
         raise PrincipalLookupError(id)
 
 
-class Logout(object):
+class Logout(grok.Adapter):
     """An adapter for IAuthentication utilities that don't implement ILogout."""
 
     grok.context(OAuth2Authenticate)
