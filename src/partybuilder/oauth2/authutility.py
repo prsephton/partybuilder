@@ -42,6 +42,20 @@ class OAuth2Authenticate(grok.LocalUtility):
         raise PrincipalLookupError(id)
 
 
+class Logout(object):
+    """An adapter for IAuthentication utilities that don't implement ILogout."""
+
+    adapts(IOAuthSite)
+    implements(ILogout)
+
+    def __init__(self, auth):
+        self.auth = auth
+
+    def logout(self, request):
+        self.auth.unauthorized(None, request)
+        
+        
+
 class AuthLogoutSupported(grok.Adapter):
     ''' An adapter that says our authentication utility supports logout '''
     grok.context(IOAuthSite)

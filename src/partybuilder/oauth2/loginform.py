@@ -2,6 +2,7 @@
 '''
 import grok
 from zope import component, schema
+from zope.authentication.logout import ILogout
 from zope.session.interfaces import ISession
 from interfaces import IOAuthPrincipalSource
 from zope.password.interfaces import IPasswordManager
@@ -54,7 +55,9 @@ class Logout(grok.Form):
         site = grok.getSite()
         sm = site.getSiteManager()
         auth = sm.getUtility(IAuthentication)
-        auth.unauthorized(None, self.request)
+        if not ILogout.providedBy(self.auth):
+            self.redirect(self,url(self.context, '@@balogout'))
+        ILogout(auth).logout(self.request)
         self.redirect(self.request.URL)
 
 
