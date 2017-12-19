@@ -272,11 +272,11 @@ class IOAuth2App(component.Interface):
                             vocabulary=u'oauth2.sources')
     authtype = schema.Choice(title=u'Type:', values=[u'OAuth-1', u'OAuth-2'], default=u'OAuth-2')
     icon = schema.Bytes(title=u'Display Icon:', required=False)
-    auth_uri = schema.URI(title=u'Auth URI: ', required=False)
-    token_uri = schema.URI(title=u'Token URI: ', required=False)
-    client_id = schema.TextLine(title=u'Client ID: ', required=False)
-    secret = schema.TextLine(title=u'Secret: ', required=False)
-    scope = schema.TextLine(title=u'Scope(s): ', required=False)
+    auth_uri = schema.URI(title=u'Auth URI: ', required=False, description=u'Where to send the browser for authentication')
+    token_uri = schema.URI(title=u'Token URI: ', required=False, description=u'Where to exchange auth token for request token')
+    client_id = schema.TextLine(title=u'Client ID: ', required=False, description=u'Our Client/Consumer ID')
+    secret = schema.TextLine(title=u'Secret: ', required=False, description=u'Our client secret if applicable')
+    scope = schema.TextLine(title=u'Scope(s): ', required=False, description=u'List of services we will want to access')
 
 
 class OAuth2App(grok.Model):
