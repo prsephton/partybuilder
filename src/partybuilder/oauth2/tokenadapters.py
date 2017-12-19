@@ -100,7 +100,7 @@ class FacebookTokenToUser(grok.Adapter):
         users = IOAuthPrincipalSource(app)
 
         url = u"https://graph.facebook.com/me"
-        print "User token info found: %s" % token
+        print "User token info found: %s" % token.info
         req = Request(url)
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "{} {}".format(token.info['token_type'],
