@@ -45,8 +45,8 @@ class OAuth2Authenticate(grok.LocalUtility):
 class Logout(object):
     """An adapter for IAuthentication utilities that don't implement ILogout."""
 
-    adapts(IOAuthSite)
-    implements(ILogout)
+    grok.context(OAuth2Authenticate)
+    grok.implements(ILogout)
 
     def __init__(self, auth):
         self.auth = auth
