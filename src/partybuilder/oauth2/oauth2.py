@@ -177,8 +177,8 @@ class V2Authorization(grok.Model):
                           client_id = client_id,
                           redirect_uri = redirect_uri,
                           state = state)
-    if type(scope) is str and len(scope):
-        self.parms['scope'] = scope
+        if type(scope) is str and len(scope):
+            self.parms['scope'] = scope
 
     def get_uri(self):
         parms = "&".join(["{}={}".format(k,v) for k,v in self.parms.items()])
