@@ -55,7 +55,6 @@ class Logout(object):
         self.auth.unauthorized(None, request)
         
         
-
 class AuthLogoutSupported(grok.Adapter):
     ''' An adapter that says our authentication utility supports logout '''
     grok.context(IOAuthSite)

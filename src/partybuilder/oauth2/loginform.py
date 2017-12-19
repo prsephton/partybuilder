@@ -2,12 +2,13 @@
 '''
 import grok
 from zope import component, schema
-from zope.authentication.logout import ILogout
+from zope.authentication.logout import ILogout, ILogoutSupported
 from zope.session.interfaces import ISession
 from interfaces import IOAuthPrincipalSource
 from zope.password.interfaces import IPasswordManager
 from zope.schema.fieldproperty import FieldProperty
-from zope.authentication.interfaces import IAuthentication
+from zope.authentication.interfaces import IAuthentication, ILogoutSupported
+from zope.component._api import queryAdapter
 
 class ILoginFields(component.Interface):
     login = schema.TextLine(title=u'Login: ')
@@ -53,10 +54,10 @@ class Logout(grok.Form):
     @grok.action(u'Logout')
     def logout(self):
         site = grok.getSite()
+        if not queryAdapter(site, ILogoutSupported):
+            self.redirect(self,url(self.context, '@@balogout'))
         sm = site.getSiteManager()
         auth = sm.getUtility(IAuthentication)
-        if not ILogout.providedBy(self.auth):
-            self.redirect(self,url(self.context, '@@balogout'))
         ILogout(auth).logout(self.request)
         self.redirect(self.request.URL)
 
