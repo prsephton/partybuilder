@@ -142,7 +142,7 @@ class V1RequestTokenView(grok.View):
         data = dict(oauth_token=access.parms['oauth_token'])
         url = "{}?{}".format(self.context.auth_uri, urlencode(data))
         self.redirect(url)
-        return 'Please visit: %s' % str(url)
+        return '<a class="autolink" href="%s">Please visit: %s</a>' % (str(url), str(url))
 
 
 class V1AccessView(grok.View):
