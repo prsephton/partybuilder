@@ -486,7 +486,7 @@ class OAuth2Viewlet(grok.Viewlet):
         kick off the oauth2 authorization process.
     '''
     grok.context(component.Interface)  # Can be installed anywhere
-    grok.viewletmanager(OAuth2Logins)
+    grok.viewletmanager(OAuthLogins)
     grok.require('zope.Public')
 
     def authenticated(self):
