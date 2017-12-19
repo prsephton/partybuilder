@@ -250,7 +250,7 @@ class V2TokenView(ErrorView):
 
                 service = self.context.__parent__.service
                 principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
-                session['principal'] = principal(self.context) if principal else None
+                session['principal'] = principal if principal else None
 
                 # If we get here, we can notify subscribers.
                 grok.notify(OAuthDoneEvent(self.context))
