@@ -236,8 +236,8 @@ class V2TokenView(ErrorView):
             if token.state == state:
                 self.context.code = code
                 data = urlencode(self.context.parms)
-#                 print "----------------------------------------------------"
-#                 print "url=[%s]; data=[%s]" % (self.context.uri, data)
+                print "----------------------------------------------------"
+                print "url=[%s]; data=[%s]" % (self.context.uri, data)
                 req = Request(self.context.uri)
                 req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                 req.add_data(data)
@@ -257,6 +257,11 @@ class V2TokenView(ErrorView):
                 self.redirect(self.url(grok.getApplication()))
             else:
                 self.error = 'State Mismatch'
+        else:
+            self.error = 'Invalid code'
+        if type(self.error) is str and len(self.error):
+            print "-------------------------------------------------"
+            print "Error [%s] in token exchange" % self.error
 
 
 class IOAuth2App(component.Interface):
