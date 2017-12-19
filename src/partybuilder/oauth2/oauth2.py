@@ -177,7 +177,7 @@ class V2Authorization(grok.Model):
                           client_id = client_id,
                           redirect_uri = redirect_uri,
                           state = state)
-        if type(scope) is not None and len(scope):
+        if scope is not None and len(scope):
             self.parms['scope'] = scope
 
     def get_uri(self):
