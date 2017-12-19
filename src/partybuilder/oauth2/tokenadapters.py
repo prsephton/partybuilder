@@ -46,7 +46,7 @@ class GoogleTokenToUser(grok.Adapter):
             user.title = unicode(res['name'])
             user.description = u'{} {}'.format(res['given_name'], res['family_name'])
             user.domain = u'Google'
-            user.login = unicode(token.info['id_token'])
+            user.login = unicode(res['id'])
             user.secret = unicode(token.info['access_token'])
             return user
 
@@ -125,7 +125,7 @@ class FacebookTokenToUser(grok.Adapter):
             user.title = unicode(res['name'])
             user.description = u'{} {}'.format(res['first_name'], res['last_name'])
             user.domain = u'Facebook'
-            user.login = unicode(token.info['id_token'])
+            user.login = unicode(res['id'])
             user.secret = unicode(token.info['access_token'])
             return user
         
