@@ -469,16 +469,6 @@ class OAuth2Applications(grok.Container):
         return self[app_id]
 
 
-class ShowError(grok.View):
-    grok.context(OAuth2Applications)
-    grok.require('zope.Pubic')
-    
-    def update(self, ok=None):
-        if ok is not None:
-            self.context.error = None
-            self.redirect(self.url(grok.getApplication()))
-
-
 class OAuth2ApplicationsView(grok.View):
     ''' A view that lists the set of defined oath2 login links  '''
     grok.context(OAuth2Applications)
@@ -501,6 +491,16 @@ class OAuth2ApplicationsEdit(grok.View):
             if sn['form']:
                 ctx, view = sn['form']
                 self.form = component.queryMultiAdapter((ctx, self.request), name=view)
+
+
+class ShowError(grok.View):
+    grok.context(OAuth2Applications)
+    grok.require('zope.Public')
+    
+    def update(self, ok=None):
+        if ok is not None:
+            self.context.error = None
+            self.redirect(self.url(grok.getApplication()))
 
 
 class OAuth2AppNew(grok.View):
