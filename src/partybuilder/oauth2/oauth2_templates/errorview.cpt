@@ -3,5 +3,5 @@
 		[<a tal:content="view.error" tal:attributes="href view.error_uri"></a>]
 		has occurred while authenticating
 	</p>
-	<p tal:content="view.error_description" />
+	<p tal:condition="view.error_description" tal:content="view.error_description" />
 </div>

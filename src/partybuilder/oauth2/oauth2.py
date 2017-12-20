@@ -236,40 +236,40 @@ class V2TokenView(ErrorView):
     def update(self, code=None, state=None, **args):
         ''' Either code or error is defined here if this is in response to Authorization '''
         super(V2TokenView, self).update(**args)
-        if code is not None:
-            token = self.context.__parent__
-            if token.state == state:
-                self.context.code = code
-                data = urlencode(self.context.parms)
-                print "----------------------------------------------------"
-                print "url=[%s]; data=[%s]" % (self.context.uri, data)
-                req = Request(self.context.uri)
-                req.add_header('Content-Type', 'application/x-www-form-urlencoded')
-                req.add_data(data)
-                try:
-                    res = urlopen(req).read()  # should be doing a post
-                    
-                    self.context.info = json.loads(res)
-                    # Update session information with auth info
-                    session = ISession(self.request)['OAuth2']
-                    session['info'] = self.context.info
-    
-                    service = self.context.__parent__.service
-                    principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
-                    session['principal'] = principal if principal else None
-    
-                    # If we get here, we can notify subscribers.
-                    grok.notify(OAuthDoneEvent(self.context))
-    
-                    self.redirect(self.url(grok.getApplication()))
-                except HTTPError as e:
-                    print "Error while opening {}: {}".format(str(req), str(e))
-                    self.error = str(e)
+        if self.error is None:
+            if code is not None:
+                token = self.context.__parent__
+                if token.state == state:
+                    self.context.code = code
+                    data = urlencode(self.context.parms)
+                    print "----------------------------------------------------"
+                    print "url=[%s]; data=[%s]" % (self.context.uri, data)
+                    req = Request(self.context.uri)
+                    req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+                    req.add_data(data)
+                    try:
+                        res = urlopen(req).read()  # should be doing a post
+                        
+                        self.context.info = json.loads(res)
+                        # Update session information with auth info
+                        session = ISession(self.request)['OAuth2']
+                        session['info'] = self.context.info
+        
+                        service = self.context.__parent__.service
+                        principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
+                        session['principal'] = principal if principal else None
+        
+                        # If we get here, we can notify subscribers.
+                        grok.notify(OAuthDoneEvent(self.context))
+        
+                        self.redirect(self.url(grok.getApplication()))
+                    except HTTPError as e:
+                        print "Error while opening {}: {}".format(str(req), str(e))
+                        self.error = str(e)
+                else:
+                    self.error = 'State Mismatch'
             else:
-                self.error = 'State Mismatch'
-                
-        else:
-            self.error = 'Invalid code'
+                self.error = 'Invalid code'
         if type(self.error) is str and len(self.error):
             print "-------------------------------------------------"
             print "Error [%s] in token exchange" % self.error
