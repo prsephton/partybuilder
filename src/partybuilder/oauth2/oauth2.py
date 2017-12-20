@@ -36,6 +36,7 @@ from interfaces import (IOAuthDoneEvent, IOAuthPrincipal,
 from zope.authentication.interfaces import IUnauthenticatedPrincipal, IAuthentication
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
+from six.moves.urllib.error import HTTPError
 from zope.schema.fieldproperty import FieldProperty
 from datetime import datetime as dt
 from oauthlib import oauth1
@@ -135,15 +136,18 @@ class V1RequestTokenView(grok.View):
         for h, v in headers:
             req.add_header(h, v)
         req.add_data(body)
-        res = urlopen(req).read()  # should be doing a post
-
-        access = self.context.process(res)
-#        Redirect with parameter: oauth_token (optional)
-        data = dict(oauth_token=access.parms['oauth_token'])
-        url = "{}?{}".format(self.context.auth_uri, urlencode(data))
-        self.redirect(url)
-        return '<a class="autolink" href="%s">Please visit: %s</a>' % (str(url), str(url))
-
+        try:
+            res = urlopen(req).read()  # should be doing a post
+    
+            access = self.context.process(res)
+    #        Redirect with parameter: oauth_token (optional)
+            data = dict(oauth_token=access.parms['oauth_token'])
+            url = "{}?{}".format(self.context.auth_uri, urlencode(data))
+            self.redirect(url)
+            return '<a class="autolink" href="%s">Please visit: %s</a>' % (str(url), str(url))
+        except HTTPError as e:
+            print "Error while opening {}: {}".format(str(req), str(e))
+            self.error = str(e)
 
 class V1AccessView(grok.View):
     grok.context(V1RequestToken)
@@ -242,23 +246,28 @@ class V2TokenView(ErrorView):
                 req = Request(self.context.uri)
                 req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                 req.add_data(data)
-                res = urlopen(req).read()  # should be doing a post
-                
-                self.context.info = json.loads(res)
-                # Update session information with auth info
-                session = ISession(self.request)['OAuth2']
-                session['info'] = self.context.info
-
-                service = self.context.__parent__.service
-                principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
-                session['principal'] = principal if principal else None
-
-                # If we get here, we can notify subscribers.
-                grok.notify(OAuthDoneEvent(self.context))
-
-                self.redirect(self.url(grok.getApplication()))
+                try:
+                    res = urlopen(req).read()  # should be doing a post
+                    
+                    self.context.info = json.loads(res)
+                    # Update session information with auth info
+                    session = ISession(self.request)['OAuth2']
+                    session['info'] = self.context.info
+    
+                    service = self.context.__parent__.service
+                    principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
+                    session['principal'] = principal if principal else None
+    
+                    # If we get here, we can notify subscribers.
+                    grok.notify(OAuthDoneEvent(self.context))
+    
+                    self.redirect(self.url(grok.getApplication()))
+                except HTTPError as e:
+                    print "Error while opening {}: {}".format(str(req), str(e))
+                    self.error = str(e)
             else:
                 self.error = 'State Mismatch'
+                
         else:
             self.error = 'Invalid code'
         if type(self.error) is str and len(self.error):
