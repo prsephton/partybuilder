@@ -1,5 +1,5 @@
 <div class="navbar-nav mr-auto">
-	<div tal:condition="path:context/error" tal:replace="structure context/@@showerror" />
+	<div tal:condition="path:context/error" tal:replace="structure path:context/@@showerror" />
 	<div tal:condition="not:path:context/error" class="row align-items-center">
 		<div class='container col-sm'>
 			<span>Login:</span>
