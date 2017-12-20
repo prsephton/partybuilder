@@ -130,6 +130,46 @@ class FacebookTokenToUser(grok.Adapter):
             return user
         
 
+class DiscordTokenToUser(grok.Adapter):
+    ''' A token user for Discord
+    '''
+    grok.context(ITokenRequest)
+    grok.implements(IOAuthPrincipal)
+    grok.name(u'Discord')
+
+    def __new__(self, token):
+        app = grok.getApplication()
+        users = IOAuthPrincipalSource(app)
+
+        url = u"https://discordapp.com/api/users/me"
+        print "User token info found: %s" % token.info
+        req = Request(url)
+        
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Authorization", "{} {}".format(token.info['token_type'],
+                                                       token.info['access_token']))
+        req.add_data(urlencode(dict(access_token=token.info['access_token'])))
+        res = urlopen(req).read()
+        if res: res = json.loads(res)
+        if res is None:
+            return None
+        else:
+            print "Personal info returned: %s" % res
+            uid = u"Discord.{}".format(res['id'])
+            found = users.find(id=uid)
+            if len(found)==0:
+                user = users.new(id=uid)
+            else:
+                user = list(found)[0]
+
+            user.authInfo = token.info
+            user.title = unicode(res['name'])
+            user.description = user.title
+            user.domain = u'Discord'
+            user.login = unicode(res['id'])
+            user.secret = unicode(token.info['access_token'])
+            return user
+
 
 class LinkedInTokenToUser(grok.Adapter):
     ''' A token user for LinkedIn
