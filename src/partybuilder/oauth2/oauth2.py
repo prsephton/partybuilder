@@ -278,6 +278,7 @@ class V2TokenView(ErrorView):
         print "Type of oauth is %s" % type(oauth)
         
         oauth.error = self.render()
+        print "oauth.render() is %s" % oauth.error
         self.redirect(self.url(grok.getApplication()))
 
 
