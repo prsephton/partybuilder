@@ -274,7 +274,7 @@ class V2TokenView(ErrorView):
             print "-------------------------------------------------"
             print "Error [%s] in token exchange" % self.error
 
-        oauth = self.context.__parent__.__parent__
+        oauth = self.context.__parent__.__parent__.__parent__
         
         oauth.error = self.render()
         self.redirect(self.url(grok.getApplication()))
