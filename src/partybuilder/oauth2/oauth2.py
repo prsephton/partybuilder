@@ -274,6 +274,11 @@ class V2TokenView(ErrorView):
             print "-------------------------------------------------"
             print "Error [%s] in token exchange" % self.error
 
+        oauth = self.context.__parent__.__parent__
+        
+        oauth.error = self.render()
+        self.redirect(self.url(grok.getApplication()))
+
 
 class IOAuth2App(component.Interface):
     ''' Defines fields needed for oauth2 app registration '''
@@ -450,7 +455,8 @@ class AppDelete(grok.View):
 class OAuth2Applications(grok.Container):
     ''' A container for OAuth2 applications '''
     editmode = False
-
+    error = None
+    
     def __init__(self):
         super(OAuth2Applications, self).__init__()
         self.sequence = 0

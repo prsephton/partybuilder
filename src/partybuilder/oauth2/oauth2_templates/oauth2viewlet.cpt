@@ -16,3 +16,6 @@
 <div class="container" tal:condition='viewlet.oauth.editmode'>
 	<div tal:replace="structure path:viewlet/oauth/@@edit"></div>
 </div>
+
+<div class="container" tal:condition='viewlet.oauth.error' tal:content='structure viewlet.oauth.error'>
+</div>
