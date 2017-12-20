@@ -1,14 +1,17 @@
 <div class="container" tal:condition='not:viewlet.oauth.editmode'>
-	<div tal:omit-tag="" tal:condition="not:path:viewlet/authenticated"
-		 tal:replace="structure path:viewlet/oauth/@@index">
-	</div>
-	<div tal:omit-tag="" tal:condition="path:viewlet/authenticated">
-		<div class='row'><span>Welcome, <span tal:replace="path:viewlet/title"></span></span></div>
-		<div class='row'><form tal:replace='structure path:viewlet/logoutform'></form></div>
-		<div class='row'>
-			<a tal:condition='viewlet.canEdit()' href=".?oauth2editing=1">
-				<button>OAuth2 Applications</button>
-			</a>
+	<div tal:condition='viewlet.oauth.error' tal:content='structure viewlet.oauth.error' />
+	<div tal:omit-tag="" tal:condition="not:viewlet.oauth.error">
+		<div tal:omit-tag="" tal:condition="not:path:viewlet/authenticated"
+			 tal:replace="structure path:viewlet/oauth/@@index">
+		</div>
+		<div tal:omit-tag="" tal:condition="path:viewlet/authenticated">
+			<div class='row'><span>Welcome, <span tal:replace="path:viewlet/title"></span></span></div>
+			<div class='row'><form tal:replace='structure path:viewlet/logoutform'></form></div>
+			<div class='row'>
+				<a tal:condition='viewlet.canEdit()' href=".?oauth2editing=1">
+					<button>OAuth2 Applications</button>
+				</a>
+			</div>
 		</div>
 	</div>
 </div>
@@ -17,5 +20,3 @@
 	<div tal:replace="structure path:viewlet/oauth/@@edit"></div>
 </div>
 
-<div class="container" tal:condition='viewlet.oauth.error' tal:content='structure viewlet.oauth.error'>
-</div>
