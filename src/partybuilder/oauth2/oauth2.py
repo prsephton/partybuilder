@@ -248,27 +248,26 @@ class V2TokenView(ErrorView):
                     req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                     req.add_data(data)
                     try:
-                        res = urlopen(req).read()  # should be doing a post
-                        
-                        self.context.info = json.loads(res)
+                        res = urlopen(req).read()  # should be doing a post                        
+                        self.context.info = json.loads(res)                        
+                        try:
+                            # Update session information with auth info
+                            session = ISession(self.request)['OAuth2']
+                            session['info'] = self.context.info
+            
+                            service = self.context.__parent__.service
+                            principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
+                            session['principal'] = principal if principal else None
+            
+                            # If we get here, we can notify subscribers.
+                            grok.notify(OAuthDoneEvent(self.context))
+            
+                            self.redirect(self.url(grok.getApplication()))
+                        except Exception as e:
+                            print "Problem in adapter for service: {}".format(str(e))
+                            self.error = str(e)
                     except HTTPError as e:
                         print "Error while exchanging tokens: {}".format(str(e))
-                        self.error = str(e)
-                    try:
-                        # Update session information with auth info
-                        session = ISession(self.request)['OAuth2']
-                        session['info'] = self.context.info
-        
-                        service = self.context.__parent__.service
-                        principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
-                        session['principal'] = principal if principal else None
-        
-                        # If we get here, we can notify subscribers.
-                        grok.notify(OAuthDoneEvent(self.context))
-        
-                        self.redirect(self.url(grok.getApplication()))
-                    except Exception as e:
-                        print "Problem in adapter for service: {}".format(str(e))
                         self.error = str(e)
                 else:
                     self.error = 'State Mismatch'
@@ -278,8 +277,7 @@ class V2TokenView(ErrorView):
             print "-------------------------------------------------"
             print "Error [%s] in token exchange" % self.error
 
-        oauth = self.context.__parent__.__parent__
-        
+        oauth = self.context.__parent__.__parent__        
         oauth.error = self._render_template()
         self.redirect(self.url(grok.getApplication()))
 
