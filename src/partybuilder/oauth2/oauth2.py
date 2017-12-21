@@ -251,6 +251,10 @@ class V2TokenView(ErrorView):
                         res = urlopen(req).read()  # should be doing a post
                         
                         self.context.info = json.loads(res)
+                    except HTTPError as e:
+                        print "Error while opening {}: {}".format(str(req), str(e))
+                        self.error = str(e)
+                    try:
                         # Update session information with auth info
                         session = ISession(self.request)['OAuth2']
                         session['info'] = self.context.info
@@ -263,8 +267,8 @@ class V2TokenView(ErrorView):
                         grok.notify(OAuthDoneEvent(self.context))
         
                         self.redirect(self.url(grok.getApplication()))
-                    except HTTPError as e:
-                        print "Error while opening {}: {}".format(str(req), str(e))
+                    except Exception as e:
+                        print "Problem in adapter for service: {}".format(str(e))
                         self.error = str(e)
                 else:
                     self.error = 'State Mismatch'
