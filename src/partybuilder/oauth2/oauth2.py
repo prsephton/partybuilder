@@ -252,7 +252,7 @@ class V2TokenView(ErrorView):
                         
                         self.context.info = json.loads(res)
                     except HTTPError as e:
-                        print "Error while opening {}: {}".format(str(req), str(e))
+                        print "Error while exchanging tokens: {}".format(str(e))
                         self.error = str(e)
                     try:
                         # Update session information with auth info
