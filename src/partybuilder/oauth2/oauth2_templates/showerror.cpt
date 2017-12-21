@@ -1,5 +1,5 @@
 <form tal:attributes="action path:request/URL" encoding="form/multipart">
-	<span>Unable to login:</span>
+	<span>Unable to login!</span>
 	<div tal:content="structure path:context/error" />
 	<input name="ok" type="submit" value="OK" />
 </form>

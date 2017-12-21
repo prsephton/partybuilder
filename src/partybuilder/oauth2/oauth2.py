@@ -261,7 +261,6 @@ class V2TokenView(ErrorView):
             
                             # If we get here, we can notify subscribers.
                             grok.notify(OAuthDoneEvent(self.context))
-            
                             self.redirect(self.url(grok.getApplication()))
                         except Exception as e:
                             print "Problem in adapter for service: {}".format(str(e))
@@ -278,7 +277,7 @@ class V2TokenView(ErrorView):
             print "Error [%s] in token exchange" % self.error
 
         oauth = self.context.__parent__.__parent__        
-        oauth.error = self._render_template()
+        oauth.error_msg = self._render_template()
         self.redirect(self.url(grok.getApplication()))
 
 
@@ -457,7 +456,7 @@ class AppDelete(grok.View):
 class OAuth2Applications(grok.Container):
     ''' A container for OAuth2 applications '''
     editmode = False
-    error = None
+    error_msg = None
     
     def __init__(self):
         super(OAuth2Applications, self).__init__()
@@ -500,7 +499,7 @@ class ShowError(grok.View):
     
     def update(self, ok=None):
         if ok is not None:
-            self.context.error = None
+            self.context.error_msg = None
             self.redirect(self.url(grok.getApplication()))
 
 
