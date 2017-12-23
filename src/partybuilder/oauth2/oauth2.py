@@ -246,6 +246,7 @@ class V2TokenView(ErrorView):
                     print "url=[%s]; data=[%s]" % (self.context.uri, data)
                     req = Request(self.context.uri)
                     req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+                    req.add_header('Accept', 'application/json')
                     req.add_data(data)
                     try:
                         res = urlopen(req).read()  # should be doing a post                        
