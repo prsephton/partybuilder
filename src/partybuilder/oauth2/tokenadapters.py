@@ -169,7 +169,7 @@ class DiscordTokenToUser(grok.Adapter):
             user.title = unicode(res['username'])
             user.description = user.title
             user.domain = u'Discord'
-            user.login = unicode(res['id'])
+            user.login = user.disco_id = unicode(res['id'])
             user.secret = unicode(token.info['access_token'])
             return user
 
