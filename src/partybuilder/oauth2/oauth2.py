@@ -236,6 +236,9 @@ class V2TokenView(ErrorView):
     def update(self, code=None, state=None, **args):
         ''' Either code or error is defined here if this is in response to Authorization '''
         super(V2TokenView, self).update(**args)
+        oauth = self.context.__parent__.__parent__
+        self.context.__parent__.__parent__.error_msg = None
+        
         if self.error is None:
             if code is not None:
                 token = self.context.__parent__
@@ -245,6 +248,7 @@ class V2TokenView(ErrorView):
                     print "----------------------------------------------------"
                     print "url=[%s]; data=[%s]" % (self.context.uri, data)
                     req = Request(self.context.uri)
+                    req.add_header('User-Agent',  'Python urlib2 (grok.zopefoundation.org, Python 2.7)')
                     req.add_header('Content-Type', 'application/x-www-form-urlencoded')
                     req.add_header('Accept', 'application/json')
                     req.add_data(data)
@@ -259,7 +263,6 @@ class V2TokenView(ErrorView):
                             service = self.context.__parent__.service
                             principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
                             session['principal'] = principal if principal else None
-            
                             # If we get here, we can notify subscribers.
                             grok.notify(OAuthDoneEvent(self.context))
                             self.redirect(self.url(grok.getApplication()))
@@ -277,7 +280,6 @@ class V2TokenView(ErrorView):
             print "-------------------------------------------------"
             print "Error [%s] in token exchange" % self.error
 
-        oauth = self.context.__parent__.__parent__        
         oauth.error_msg = self._render_template()
         self.redirect(self.url(grok.getApplication()))
 
@@ -332,7 +334,8 @@ class OAuth2App(grok.Model):
 
         # exchange the code for a token
         redirect_uri = str(grok.url(request, self.token, name="@@tokenview"))
-        redirect_uri = redirect_uri.replace("http:", "https:")
+        if redirect_uri.find('/localhost') < 0:
+            redirect_uri = redirect_uri.replace("http:", "https:")
         self.authorize = V2Authorization(self.auth_uri,
                                          redirect_uri=redirect_uri,
                                          client_id=self.client_id,
@@ -476,7 +479,15 @@ class OAuth2ApplicationsView(grok.View):
     grok.name('index')
     grok.require('zope.Public')
 
-
+    def has_error(self):
+        err = self.context.error_msg.strip()
+        if type(err) is str:
+            err = unicode(err)
+        if type(err) is unicode and len(err):
+            return True
+        return False
+                
+        
 class OAuth2ApplicationsEdit(grok.View):
     ''' A view to edit the list of oath2 applications '''
     grok.context(OAuth2Applications)

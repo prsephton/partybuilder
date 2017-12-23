@@ -27,6 +27,7 @@ class GoogleTokenToUser(grok.Adapter):
 
         url = u"https://www.googleapis.com/userinfo/v2/me"
         req = Request(url)
+        req.add_header('User-Agent',  'Python urlib2 (grok.zopefoundation.org, Python 2.7)')
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "{} {}".format(token.info['token_type'],
                                                        token.info['access_token']))
@@ -64,6 +65,7 @@ class TwitterTokenToUser(grok.Adapter):
         uri = "https://api.twitter.com/1.1/account/verify_credentials.json"
 
         req = Request(url)
+        req.add_header('User-Agent',  'Python urlib2 (grok.zopefoundation.org, Python 2.7)')
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "{} {}".format(token.info['token_type'],
                                                        token.info['access_token']))
@@ -103,6 +105,7 @@ class FacebookTokenToUser(grok.Adapter):
         print "User token info found: %s" % token.info
         req = Request(url)
         
+        req.add_header('User-Agent',  'Python urlib2 (grok.zopefoundation.org, Python 2.7)')
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "{} {}".format(token.info['token_type'],
                                                        token.info['access_token']))
@@ -141,14 +144,14 @@ class DiscordTokenToUser(grok.Adapter):
         app = grok.getApplication()
         users = IOAuthPrincipalSource(app)
 
-        url = u"https://discordapp.com/api/users/me"
+        url = u"https://discordapp.com/api/users/@me"
         print "User token info found: %s" % token.info
         req = Request(url)
         
+        req.add_header('User-Agent',  'Python urlib2 (grok.zopefoundation.org, Python 2.7)')
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "{} {}".format(token.info['token_type'],
                                                        token.info['access_token']))
-        req.add_data(urlencode(dict(access_token=token.info['access_token'])))
         res = urlopen(req).read()
         if res: res = json.loads(res)
         if res is None:
@@ -163,7 +166,7 @@ class DiscordTokenToUser(grok.Adapter):
                 user = list(found)[0]
 
             user.authInfo = token.info
-            user.title = unicode(res['name'])
+            user.title = unicode(res['username'])
             user.description = user.title
             user.domain = u'Discord'
             user.login = unicode(res['id'])

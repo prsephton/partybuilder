@@ -1,6 +1,6 @@
 from zope import schema, component
 from hiddenwidgets import HiddenInt
-from oauth.interfaces import IOAuthPrincipal
+from oauth2.interfaces import IOAuthPrincipal
 
 class ILayout(component.Interface):
     ''' Our layout marker interface '''
