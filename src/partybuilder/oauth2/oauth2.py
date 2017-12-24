@@ -31,7 +31,7 @@ from zope import component, schema, location
 from random import randint
 from zope.component.interfaces import IObjectEvent, ObjectEvent
 from zope.session.interfaces import ISession
-from interfaces import (IOAuthDoneEvent, IOAuthPrincipal,
+from interfaces import (IOAuthenticatedEvent, IOAuthPrincipal,
                         IOAuthSite, ITokenRequest)
 from zope.authentication.interfaces import IUnauthenticatedPrincipal, IAuthentication
 from six.moves.urllib.request import urlopen, Request
@@ -52,9 +52,9 @@ class OAuthLogins(grok.ViewletManager):
     grok.require('zope.Public')
 
 
-class OAuthDoneEvent(ObjectEvent):
+class OAuthenticatedEvent(ObjectEvent):
     ''' An event that gets triggered after successful authorization '''
-    grok.implements(IOAuthDoneEvent)
+    grok.implements(IOAuthenticatedEvent)
 
 
 class ErrorView(grok.View):
@@ -164,7 +164,7 @@ class V1AccessView(grok.View):
         principal = component.queryAdapter(access, IOAuthPrincipal, name=service)
         session['principal'] = principal if principal else None
 
-        grok.notify(OAuthDoneEvent(self.context.access))
+        grok.notify(OAuthenticatedEvent(self.context.access))
         self.redirect(self.url(grok.getApplication()))
 
 
@@ -264,7 +264,7 @@ class V2TokenView(ErrorView):
                             principal = component.queryAdapter(self.context, IOAuthPrincipal, name=service)
                             session['principal'] = principal if principal else None
                             # If we get here, we can notify subscribers.
-                            grok.notify(OAuthDoneEvent(self.context))
+                            grok.notify(OAuthenticatedEvent(session['principal']))
                             self.redirect(self.url(grok.getApplication()))
                         except Exception as e:
                             print "Problem in adapter for service: {}".format(str(e))
@@ -480,10 +480,10 @@ class OAuth2ApplicationsView(grok.View):
     grok.require('zope.Public')
 
     def has_error(self):
-        err = self.context.error_msg.strip()
+        err = self.context.error_msg
         if type(err) is str:
             err = unicode(err)
-        if type(err) is unicode and len(err):
+        if type(err) is unicode and len(err.strip()):
             return True
         return False
                 

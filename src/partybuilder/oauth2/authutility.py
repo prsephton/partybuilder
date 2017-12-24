@@ -53,7 +53,7 @@ class Logout(grok.Adapter):
 
     def logout(self, request):
         self.auth.unauthorized(None, request)
-        
+
         
 class AuthLogoutSupported(grok.Adapter):
     ''' An adapter that says our authentication utility supports logout '''

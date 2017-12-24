@@ -2,14 +2,11 @@ from zope import component, schema
 from zope.security.interfaces import IPrincipal
 from zope.authentication.interfaces import IPrincipalSource
 
-class IOAuthDoneEvent(component.interfaces.IObjectEvent):
+class IOAuthenticatedEvent(component.interfaces.IObjectEvent):
     ''' This event is fired when OpenAuth2 returns a request token.
-        The object which is the subject of the event is an instance of
-        TokenRequest.
-        The TokenRequest.__parent__ is an instance of OAuth2App.
-        TokenRequest.info is a dict which contains the access_token.
-
-        We can use @grok.subscribe(IOAuthDoneEvent) to subscribe
+        The object which is the subject of the event is an instance 
+        of the user who has been authenticated
+        We can use @grok.subscribe(IOAuthenticatedEvent) to subscribe
     '''
 
 class IOAuthSite(component.Interface):

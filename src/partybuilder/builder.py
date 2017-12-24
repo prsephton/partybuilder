@@ -2,12 +2,12 @@ import grok
 import simplejson as json
 
 from partybuilder import resource
-from interfaces import IUser, IParty, ILayout
+from interfaces import IUser, IParty, ILayout, IUserProfile, IBuilderApp
 from zope import component
 from oauth2.interfaces import IOAuthSite, IOAuthPrincipalSource
 from zope.catalog.interfaces import ICatalog
 from zope.schema.fieldproperty import FieldProperty
-
+from zope.session.interfaces import ISession
 
 class User(grok.Model):
     grok.implements(IUser)
@@ -20,6 +20,9 @@ class User(grok.Model):
     secret = FieldProperty(IUser['secret'])
     gw2_apikey = FieldProperty(IUser['gw2_apikey'])
     disco_id = FieldProperty(IUser['disco_id'])
+
+    profile = None
+    grok.traversable('profile')
 
     def __init__(self, userno, id=None):
         self.userno = int(userno)
@@ -73,12 +76,24 @@ class Parties(grok.Container):
 
 
 class Partybuilder(grok.Application, grok.Container):
-    grok.implements(ILayout, IOAuthSite)
+    grok.implements(ILayout, IOAuthSite, IBuilderApp)
 
     def __init__(self):
         super(Partybuilder, self).__init__()
         self['users'] = Users()
         self['parties'] = Parties()
+
+
+class Traverse(grok.Traverser):
+    grok.context(Partybuilder)
+    
+    def traverse(self, path):
+        
+        if path == 'profile':
+            session = ISession(self.request)['OAuth2']
+            if 'principal' in session.keys():
+                user = session['principal']
+                return IUserProfile(user)
 
 
 class UserIndex(grok.Indexes):

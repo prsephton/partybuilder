@@ -1,6 +1,10 @@
+import grok
 from zope import schema, component
 from hiddenwidgets import HiddenInt
 from oauth2.interfaces import IOAuthPrincipal
+
+class IBuilderApp(component.Interface):
+    ''' Marker interface for the builder application '''
 
 class ILayout(component.Interface):
     ''' Our layout marker interface '''
@@ -21,3 +25,10 @@ class IParty(component.Interface):
     members = schema.List(title=u'Members', value_type=schema.Object(schema=IUser),
                           unique=True, default=[])
 
+
+class IUserProfile(component.Interface):
+    ''' Attributes associated with a user profile '''
+
+class Content(grok.ViewletManager):
+    ''' Content portion of the display '''
+    grok.context(ILayout)

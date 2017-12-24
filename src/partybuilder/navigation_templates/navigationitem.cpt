@@ -1,0 +1,3 @@
+<li class="nav-item active">
+    <a class="nav-link" tal:attributes="href viewlet.link" tal:content="viewlet.title"></a>
+</li>

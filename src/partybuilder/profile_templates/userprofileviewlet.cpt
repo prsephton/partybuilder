@@ -1,0 +1,31 @@
+<div class="container" style="margin-top:1em">
+	<div tal:condition="viewlet.needs_key">
+		<p>Please ensure that the GuildWars 2 API key is correct.  If you don't already have one, please visit 
+		<a href="https://account.arena.net/applications">The Guild Wars Applications List</a> and create a new
+		application for Party Builder.  You may call the app "Party Builder", or anything else you prefer.</p>
+		<p>Party builder needs permissions for:</p>
+		<ul>
+			<li><em>account</em><br />
+				Your account display name, ID, home world, and list of guilds. Required permission.
+			</li>
+			<li><em>characters</em><br />
+				Basic information about your characters.
+			</li>
+			<li><em>builds</em><br />
+				Your currently equipped specializations, traits, skills, and equipment for all game modes.
+			</li>
+		</ul>
+		<p>Once you have generated an application key, copy it from the Guild Wars 2 site and paste it into the box below.</p>
+		<frameset>
+			<legend>Please enter your key</legend>
+			<div tal:content="structure path:context/@@apikey" />
+		</frameset>
+	</div>
+	<div tal:condition="not:viewlet.needs_key">
+		<form tal:attributes="action path:request/URL" method="post" enctype="multipart/formdata">
+			<p>Guild Wars 2 API key is: <span tal:content="path:viewlet/user/gw2_apikey" /> <input type="submit" name="reset_gw2key" value="reset" /></p>
+		</form>
+		<p>show the users characters here</p>
+		<p>show selected character build here</p>
+	</div>
+</div>
