@@ -51,16 +51,22 @@
 			   <span tal:content="int(context.core['age']/(60*60)) % 24"/> hours and 
 			   <span tal:content="int(context.core['age']/60) % 60"/> minutes, and has died
 			   <span tal:content="path:context/core/deaths"/> times.</p>
-			<div class="col-md-16">
+			<div class="col-md-20">
 				<div tal:repeat="g path:context/gear" class="row">
-					<div class="col-md-8">
+					<div class="col-md-1.5">
 						<img tal:attributes="src path:g/id/icon" />
+					</div>
+					<div class="col-md-4">
 						<span tal:content="path:g/id/name" />
 					</div>
-					<div tal:repeat="u path:g/upgrades" class="col-md-8">
-						<img tal:attributes="src path:u/icon" />
-						<span tal:content="path:u/name" />
-					</div>
+					<tal:loop tal:repeat="u path:g/upgrades" >
+						<div class="col-md-1.5">
+							<img tal:attributes="src path:u/icon" />
+						</div>
+						<div class="col-md-4">
+							<span tal:content="path:u/name" />
+						</div>
+					</tal:loop>
 				</div>
 			</div>
 		</div>
