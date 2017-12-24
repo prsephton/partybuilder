@@ -25,7 +25,44 @@
 		<form tal:attributes="action path:request/URL" method="post" enctype="multipart/formdata">
 			<p>Guild Wars 2 API key is: <span tal:content="path:viewlet/user/gw2_apikey" /> <input type="submit" name="reset_gw2key" value="reset" /></p>
 		</form>
-		<p>show the users characters here</p>
-		<p>show selected character build here</p>
+		<h5>Identified account name: <span tal:replace="path:context/account/name" /></h5>
+		<p>The following characters are defined for this account:</p>
+		<form tal:attributes="action path:request/URL" method="post" enctype="multipart/formdata">
+			<ul>			
+				<li tal:repeat="c path:context/characters">
+					<div class="radio">
+					  <label>
+					    <input class='autosubmit' tal:condition="context.selected==c" type="radio" name="character" tal:attributes="value c" checked>			
+					    <input class='autosubmit' tal:condition="context.selected!=c" type="radio" name="character" tal:attributes="value c">
+						<span tal:replace="c" />
+					  </label>
+					</div>			
+				</li>
+			</ul>
+			<div class="message" style="display:none">
+				<p>Fetching your character...</p>
+				<p>Please be patient; this can take a while!</p>
+			</div>
+		</form>
+		<div class="container paged row">
+			<p><span tal:content="path:context/core/name"/>: Level <span tal:content="path:context/core/level"/> <span tal:content="path:context/core/gender" />
+			   <span tal:content="path:context/core/race" /> <span tal:content="path:context/core/profession" />.  Played for 
+			   <span tal:content="int(context.core['age']/(24*60*60))"/> days, 
+			   <span tal:content="int(context.core['age']/(60*60)) % 24"/> hours and 
+			   <span tal:content="int(context.core['age']/60) % 60"/> minutes, and has died
+			   <span tal:content="path:context/core/deaths"/> times.</p>
+			<div class="col-md-16">
+				<div tal:repeat="g path:context/gear" class="row">
+					<div class="col-md-8">
+						<img tal:attributes="src path:g/id/icon" />
+						<span tal:content="path:g/id/name" />
+					</div>
+					<div tal:repeat="u path:g/upgrades" class="col-md-8">
+						<img tal:attributes="src path:u/icon" />
+						<span tal:content="path:u/name" />
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
