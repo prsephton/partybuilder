@@ -8,6 +8,7 @@ from oauth2.interfaces import IOAuthSite, IOAuthPrincipalSource
 from zope.catalog.interfaces import ICatalog
 from zope.schema.fieldproperty import FieldProperty
 from zope.session.interfaces import ISession
+from zope.authentication.interfaces import IUnauthenticatedPrincipal
 
 class User(grok.Model):
     grok.implements(IUser)
@@ -90,10 +91,13 @@ class Traverse(grok.Traverser):
     def traverse(self, path):
         
         if path == 'profile':
-            session = ISession(self.request)['OAuth2']
-            if 'principal' in session.keys():
-                user = session['principal']
-                return IUserProfile(user)
+            if IUnauthenticatedPrincipal.providedBy(self.request.principal):
+                return self.context
+            else:
+                session = ISession(self.request)['OAuth2']
+                if 'principal' in session.keys():
+                    user = session['principal']
+                    return IUserProfile(user)
 
 
 class UserIndex(grok.Indexes):

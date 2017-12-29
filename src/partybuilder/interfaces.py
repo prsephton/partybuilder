@@ -32,3 +32,13 @@ class IUserProfile(component.Interface):
 class Content(grok.ViewletManager):
     ''' Content portion of the display '''
     grok.context(ILayout)
+
+class IItemCache(component.Interface):
+    ''' An item Cache '''
+    
+class IItemStatsCache(component.Interface):
+    ''' An item stats Cache '''
+    
+class ISkinCache(component.Interface):
+    ''' An item skins cache '''
+    

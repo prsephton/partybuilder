@@ -5,16 +5,23 @@
 
 import grok
 import simplejson as json
-from interfaces import ILayout, IUser, IUserProfile, Content
+from persistent.dict import PersistentDict
+from persistent.list import PersistentList
+from interfaces import ILayout, IUser, IUserProfile, Content, IItemCache, IItemStatsCache, ISkinCache
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
-from six.moves.urllib.error import HTTPError
+from six.moves.urllib.error import HTTPError, URLError
 from zope import location
 from resource import js_utils
+from zope import component
 
 class GW2API(object):
     base = 'https://api.guildwars2.com/v2/'
-
+    app = None
+    
+    def __init__(self):
+        self.app = grok.getApplication()
+    
     def apiRequest(self, ep, key=None, data=None, method='GET'):
         if data is not None or method=='POST':
             req = Request("{}{}".format(self.base, ep))
@@ -29,12 +36,15 @@ class GW2API(object):
             if data is None: data = {}
             data['access_token'] = key
             data = urlencode(data)
-            req = Request("{}{}?{}".format(self.base, ep, data))     
-        try:
-            res = urlopen(req).read()
-            return json.loads(res)
-        except HTTPError as e:
-            raise
+            req = Request("{}{}?{}".format(self.base, ep, data))
+        for retries in range(3):
+            try:
+                res = urlopen(req).read()
+                return json.loads(res)
+            except HTTPError as e:
+                raise
+            except URLError as e:
+                pass
     
     def account(self, key):
         return self.apiRequest('account', key)
@@ -44,7 +54,19 @@ class GW2API(object):
     
     def character_core(self, key, character):
         ep = 'characters/{}'.format(character)
-        return self.apiRequest(ep, key)
+        ret = self.apiRequest(ep, key)
+        if ret is None: return None
+        for item in ret['equipment']:
+            item['id'] = self.items(item['id'])
+            if 'upgrades' in item:
+                item['upgrades'] = [self.items(i) for i in item['upgrades']]
+            if 'infusions' in item:
+                item['infusions'] = [self.items(i) for i in item['infusions']]
+            if 'skin' in item:
+                item['skin'] = self.skins(item['skin'])
+            if 'stats' in item:
+                item['stats']['id'] = self.itemstats(item['stats']['id'])
+        return ret
     
     def character_equipment(self, key, character):
         ep = 'characters/{}/equipment'.format(character)
@@ -57,6 +79,8 @@ class GW2API(object):
                 item['infusions'] = [self.items(i) for i in item['infusions']]
             if 'skin' in item:
                 item['skin'] = self.skins(item['skin'])
+            if 'stats' in item:
+                item['stats']['id'] = self.itemstats(item['stats']['id'])
         return ret
                 
     def character_skills(self, key, character):
@@ -68,13 +92,28 @@ class GW2API(object):
         return self.apiRequest(ep, key)
     
     def skins(self, a_id):
-        return self.apiRequest('skins/{}'.format(a_id))
+        cache = ISkinCache(self.app)
+        val = cache[a_id]
+        if val is None:
+            val = self.apiRequest('skins/{}'.format(a_id))
+            cache[a_id] = val
+        return val
     
     def items(self, a_id):
-        return self.apiRequest('items/{}'.format(a_id))
+        cache = IItemCache(self.app)
+        val = cache[a_id]
+        if val is None:
+            val = self.apiRequest('items/{}'.format(a_id))
+            cache[a_id] = val
+        return val
 
     def itemstats(self, a_id):
-        return self.apiRequest('itemstats/{}'.format(a_id))
+        cache = IItemStatsCache(self.app)
+        val = cache[a_id]
+        if val is None:
+            val = self.apiRequest('itemstats/{}'.format(a_id))
+            cache[a_id] = val
+        return val
     
     def skills(self, a_id):
         return self.apiRequest('skills/{}'.format(a_id))
@@ -89,31 +128,214 @@ class GW2API(object):
     
 class UserProfile(grok.Model):
     grok.implements(IUserProfile, ILayout)
+
+    # Derived stats    
+    health = 0            # 1 Vitality = 10 health)
+    armor = 0             # Toughness + Defense
+    crit_chance = 0       # (Crit Chance = 5% + Precision / 21
+    crit_dmg = 0          # (Crit Dmg = 150% + by Ferocity/15
+    boon_duration = 0     # Increased by Concentration (15 = 1%)
+    cond_duration = 0     # Increased by Expertise (15 = 1%)
     
+    base_health = {'Warrior':9212, 'Necromancer':9212,
+                   'Revenant':5922, 'Engineer':5922, 'Ranger':5922, 'Mesmer':5922,
+                   'Guardian':1645, 'Thief':1645, 'Elementalist':1645 }
+    
+    stats = PersistentDict()
+    runes = PersistentDict()
+    buffs = PersistentList()
+    
+    selected_weapon = 0
     characters = []
     selected = ''
-    
+    refresh = False
+    gear = []
+    trinkets = []
+    amulet = []
+    backpack = []
+    aquatic = []
+
     def __init__(self, user):
         self.user = user
     
     def update(self):
-        self.account = GW2API().account(self.user.gw2_apikey)
-        self.characters = GW2API().characters(self.user.gw2_apikey)
-        if len(self.selected)==0: self.selected = self.characters[0]
-        self.core = GW2API().character_core(self.user.gw2_apikey, self.selected)
-        self.skills = GW2API().character_skills(self.user.gw2_apikey, self.selected)
-        self.equipment = GW2API().character_equipment(self.user.gw2_apikey, self.selected)
-        self.specializations = GW2API().character_specializations(self.user.gw2_apikey, self.selected)
+        
+        account = GW2API().account(self.user.gw2_apikey)
+        if account is not None:
+            self.account = account
+        characters = GW2API().characters(self.user.gw2_apikey)
+        if characters is not None:
+            self.characters = characters
+#        self.refresh=True
+        if len(self.selected)==0: 
+            self.selected = self.characters[0]
+            self.refresh = True
+        if self.refresh:
+            core = GW2API().character_core(self.user.gw2_apikey, self.selected)
+            if core is not None: 
+                self.core = core
+#            self.equipment = GW2API().character_equipment(self.user.gw2_apikey, self.selected)
+#            self.skills = GW2API().character_skills(self.user.gw2_apikey, self.selected)
+#            self.specializations = GW2API().character_specializations(self.user.gw2_apikey, self.selected)
+            self.refresh = False
+            
+        self.stats = PersistentDict({'Power': 1000, 'Precision': 1000, 'Toughness': 1000, 'Vitality':1000,
+                                     'Defense':0, 'ConditionDamage': 0, 'CritDamage':0,
+                                     'Concentration':0, 'Expertise':0, 'Ferocity':0, 'Healing':0,
+                                     'BoonDuration':0, 'ConditionDuration':0
+                                     })
+        self.runes = PersistentDict()
+        self.buffs = PersistentList()
+        
+        self.gear = self._gear()
+        self.trinkets = self._trinkets()
+        self.amulet = self._amulet()
+        self.backpack = self._backpack()
+        self.weapons = self._weapons()
+        self.aquatic = self._aquatic()
 
-    def gear(self):
-        items = ["Helm", "Shoulders", "Gloves", "Coat", "Leggings", "Boots"]
+        for r in self.runes.values():
+            b = r['rune']['bonuses'][:r['count']]
+            for effect in b:
+                if effect.find(' to All Stats')>0:
+                    perc = int(effect.split(' ')[0])
+                    for stat in ['Power', 'Precision', 'Toughness', 'Vitality', 'Ferocity', 'Healing', 'ConditionDamage']:
+                        self.stats[stat] += perc
+
+        self.health = self.stats['Vitality'] * 10 + self.base_health[self.core['profession']]
+        self.armor = self.stats['Toughness'] + self.stats['Defense']
+        self.crit_chance = (self.stats['Precision']-916) / 21.0
+        self.crit_dmg = 150 + (self.stats['CritDamage'] + self.stats['Ferocity']) / 15.0
+        self.boon_duration = (self.stats['BoonDuration'] + self.stats['Concentration']) / 15.0
+        self.cond_duration = (self.stats['ConditionDuration'] + self.stats['Expertise']) / 15.0
+        pass
+
+
+    def _process_attributes(self, attributes):
+        for a, i in attributes.items():
+            if a in self.stats:
+                self.stats[a] += i
+            else:
+                self.stats[a] = i
+                
+    def _process_details(self, details):
+        if 'defense' in details:
+            self.stats['Defense'] += details['defense']
+        if 'infix_upgrade' in details:
+            for a in details['infix_upgrade']['attributes']:
+                if a['attribute'] in self.stats:
+                    self.stats[a['attribute']] += a['modifier']
+                else:
+                    self.stats[a['attribute']] = a['modifier']
+            if 'buff' in details['infix_upgrade']:
+                self.buffs.append(details['infix_upgrade']['buff'])
+            
+    def _check_stats(self, e):
+        if 'id' in e and type(e['id']) is dict:
+            if 'details' in e['id']:
+                self._process_details(e['id']['details'])
+        
+        if 'stats' in e and 'attributes' in e['stats']:
+            for a, i in e['stats']['attributes'].items():
+                if a in self.stats:
+                    self.stats[a] += i
+                else:
+                    self.stats[a] = i
+            
+        if 'infusions' in e:
+            for i in e['infusions']:
+                if i['type'] == 'UpgradeComponent' and 'details' in i:
+                    self._process_details(i['details'])
+                else:
+                    print "Not processing infusion type: %s" % i['type']
+                
+        if 'upgrades' in e:
+            for u in e['upgrades']:
+                if u['type'] == 'UpgradeComponent' and 'details' in u:
+                    r = u['details']
+                    if r['type'] == 'Rune':
+                        if u['name'] in self.runes:
+                            self.runes[u['name']]['count'] += 1
+                        else:
+                            self.runes[u['name']] = {'rune': r, 'count':1}
+                    else:
+                        self._process_details(r)                    
+                else:
+                    print 'Not processing upgrade type=%s' % u['type']
+
+    
+    def _weapons(self):
         refs = {}
-        equipment = self.equipment['equipment']
+        
+        equipment = self.core['equipment']
+        
+        items = ["WeaponA1", "WeaponA2"]
+        for e in equipment:
+            if 'slot' in e and e['slot'] in items:
+                refs[e['slot']] = e                    
+        weapons_a = [refs[i] for i in items if i in refs]
+        
+        items = ["WeaponB1", "WeaponB2"]
+        for e in equipment:
+            if 'slot' in e and e['slot'] in items:
+                refs[e['slot']] = e                    
+        weapons_b = [refs[i] for i in items if i in refs]
+        weapons = [weapons_a, weapons_b]
+        current = weapons[self.selected_weapon]
+        for c in current:
+            self._check_stats(c)            
+        return weapons
+
+    
+    def _trinkets(self):
+        refs = {}
+        items = ["Accessory1", "Accessory2", "Ring1", "Ring2"]
+        equipment = self.core['equipment']
+        for e in equipment:
+            if 'slot' in e and e['slot'] in items:                    
+                self._check_stats(e)            
+                refs[e['slot']] = e
+                    
+        return [refs[i] for i in items]
+
+        
+    def _backpack(self):
+        slot = 'Backpack'
+        equipment = self.core['equipment']
+        for e in equipment:
+            if 'slot' in e and e['slot']==slot:
+                self._check_stats(e)
+                return [e]
+            
+    def _amulet(self):
+        slot = 'Amulet'
+        equipment = self.core['equipment']
+        for e in equipment:
+            if 'slot' in e and e['slot']==slot:
+                self._check_stats(e)
+                return [e]
+            
+    def _gear(self):
+        items = ["Helm", "Shoulders", "Coat", "Gloves", "Leggings", "Boots"]
+        refs = {}
+        equipment = self.core['equipment']
+        for e in equipment:
+            if 'slot' in e and e['slot'] in items:                    
+                self._check_stats(e)            
+                refs[e['slot']] = e
+                    
+        return [refs[i] for i in items]
+    
+    def _aquatic(self):
+        refs = {}
+        items = ["WeaponAquaticA", "WeaponAquaticB", "HelmAquatic"]
+        equipment = self.core['equipment']
         for e in equipment:
             if 'slot' in e and e['slot'] in items:
                 refs[e['slot']] = e
-        return [refs[i] for i in items]
     
+        return [refs[i] for i in items if i in refs]
+        
     
 class CurrentUserProfile(grok.Adapter):
     grok.context(IUser)
@@ -144,6 +366,7 @@ class UserProfileViewlet(grok.Viewlet):
         else:
             if 'character' in self.request:
                 self.context.selected = self.request['character']
+                self.context.refresh = True
             self.context.update()
             
         js_utils.need()

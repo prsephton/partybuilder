@@ -57,6 +57,7 @@
 						<img tal:attributes="src path:g/id/icon" />
 					</div>
 					<div class="col-md-4">
+						<span tal:condition="path:g/stats | nothing" tal:content="path:g/stats/id/name" />
 						<span tal:content="path:g/id/name" />
 					</div>
 					<tal:loop tal:repeat="u path:g/upgrades" >
