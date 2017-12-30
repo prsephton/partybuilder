@@ -31,6 +31,7 @@ setup(name='partybuilder',
                         'gw2api',
                         'six',
                         'oauthlib',
+                        'regex',
                         ],
       entry_points={
           'fanstatic.libraries': [

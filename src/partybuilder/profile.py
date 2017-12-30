@@ -5,15 +5,20 @@
 
 import grok
 import simplejson as json
+import regex as re
 from persistent.dict import PersistentDict
 from persistent.list import PersistentList
-from interfaces import ILayout, IUser, IUserProfile, Content, IItemCache, IItemStatsCache, ISkinCache
+from interfaces import (ILayout, IUser, IUserProfile, Content, IItemCache, 
+                        IItemStatsCache, ISkinCache, ITraitsCache)
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.error import HTTPError, URLError
 from zope import location
 from resource import js_utils
 from zope import component
+from gw2api.v2 import wvw_abilities
+from PIL import Image
+from StringIO import StringIO
 
 class GW2API(object):
     base = 'https://api.guildwars2.com/v2/'
@@ -66,6 +71,11 @@ class GW2API(object):
                 item['skin'] = self.skins(item['skin'])
             if 'stats' in item:
                 item['stats']['id'] = self.itemstats(item['stats']['id'])
+        for gmode in ret['specializations']:
+            for spec in ret['specializations'][gmode]:
+                if spec and 'id' in spec: 
+                    spec['id'] = self.specializations(spec['id'])
+                    spec['traits'] = [self.traits(trait) for trait in spec['traits']]                    
         return ret
     
     def character_equipment(self, key, character):
@@ -119,13 +129,50 @@ class GW2API(object):
         return self.apiRequest('skills/{}'.format(a_id))
     
     def specializations(self, a_id):
-        return self.apiRequest('specializations/{}'.format(a_id))
+        spec = self.apiRequest('specializations/{}'.format(a_id))
+        for key in ['minor_traits', 'major_traits']:
+            spec[key] = [self.traits(trait) for trait in spec[key]]
+        return spec
     
     def traits(self, a_id):
-        return self.apiRequest('traits/{}'.format(a_id))
+        cache = ITraitsCache(self.app)
+        val = cache[a_id]
+        if val is None:
+            val = self.apiRequest('traits/{}'.format(a_id))
+            cache[a_id] = val
+        return val
+        
+
+class SpecImage(grok.Model):
+    fn = 'noname'
+    image = ''
     
+    def __init__(self, url):
+        self.fn = url[url.rfind("/")+1:]
+        fd = StringIO(urlopen(url).read())
+        im = Image.open(fd)
+        _w, h = im.size
+        box = (0, h-200, 650, 200)
+        region = im.crop(box)
+        box = (500, 100)
+        region = region.resize(box)
+        bytes = StringIO()
+        region.save(bytes, format='PNG')
+        self.image = bytes.getvalue()
+
+
+class SpecImageView(grok.View):
+    grok.context(SpecImage)
+    grok.require('zope.Public')
+    grok.name('index')
     
-    
+    def render(self):
+        self.response.setHeader('Content-Type', "image/png")
+        disposition = "inline; filename='{}'".format(self.context.fn)
+        self.response.setHeader("Content-Disposition", disposition)
+        return self.context.image
+
+
 class UserProfile(grok.Model):
     grok.implements(IUserProfile, ILayout)
 
@@ -146,6 +193,7 @@ class UserProfile(grok.Model):
     buffs = PersistentList()
     
     selected_weapon = 0
+    selected_traits = []
     characters = []
     selected = ''
     refresh = False
@@ -154,12 +202,17 @@ class UserProfile(grok.Model):
     amulet = []
     backpack = []
     aquatic = []
-
-    def __init__(self, user):
-        self.user = user
+    game_modes = ["pve", "pvp", "wvw"]
+    gmode = "wvw"
+    spec_bg = grok.Container()
+    grok.traversable('spec_bg')
     
-    def update(self):
+    def __init__(self, user):
+        location.locate(self.spec_bg, self, 'spec_bg')
+        self.user = user
         
+    def update(self):
+        location.locate(self.spec_bg, self, 'spec_bg')
         account = GW2API().account(self.user.gw2_apikey)
         if account is not None:
             self.account = account
@@ -201,6 +254,13 @@ class UserProfile(grok.Model):
                     perc = int(effect.split(' ')[0])
                     for stat in ['Power', 'Precision', 'Toughness', 'Vitality', 'Ferocity', 'Healing', 'ConditionDamage']:
                         self.stats[stat] += perc
+                elif effect.find('% Boon Duration') > 0:
+                    perc = int(effect.split('%')[0])
+                    self.stats['BoonDuration'] += perc * 15
+                elif self._stat_effect(effect):
+                    pass
+                else:
+                    self.buffs.append(effect)
 
         self.health = self.stats['Vitality'] * 10 + self.base_health[self.core['profession']]
         self.armor = self.stats['Toughness'] + self.stats['Defense']
@@ -208,9 +268,39 @@ class UserProfile(grok.Model):
         self.crit_dmg = 150 + (self.stats['CritDamage'] + self.stats['Ferocity']) / 15.0
         self.boon_duration = (self.stats['BoonDuration'] + self.stats['Concentration']) / 15.0
         self.cond_duration = (self.stats['ConditionDuration'] + self.stats['Expertise']) / 15.0
+        
+        for i in list(self.spec_bg.keys()):
+            del self.spec_bg[i]
+
+        self.selected_traits = []
+        for spec in self.specs():
+            img = SpecImage(spec['id']['background'])
+            self.spec_bg[img.fn] = img
+            spec['id']['img_no'] = img.fn
+            self.selected_traits.extend([t['name'] for t in spec['traits']])
+            
         pass
 
-
+    def statlist(self):
+        for s in ["Power", "Precision", "Toughness", "Vitality", "Healing", "ConditionDamage"]:
+            yield {'name':s, 'value': self.stats[s], 'unit': ''}
+        yield {'name':'Health', 'value': self.health, 'unit': ''}
+        yield {'name':'Armour', 'value': self.armor, 'unit': ''}
+        yield {'name':'Crit Chance', 'value': round(self.crit_chance, 2), 'unit': '%'}
+        yield {'name':'Crit Damage', 'value': round(self.crit_dmg, 2), 'unit': '%'}
+        yield {'name':'Boon Duration', 'value': round(self.boon_duration, 2), 'unit': '%'}
+        yield {'name':'Cond Duration', 'value': round(self.cond_duration, 2), 'unit': '%'}
+        
+        
+    def specs(self):
+        return self.core['specializations'][self.gmode]        
+        
+    def _stat_effect(self, effect):
+        exp = re.search(r'\+(.*) (Power|Precision|Toughness|Vitality|Defense|Healing|Concentration|Expertise)', effect)
+        if (exp and len(exp)==3):
+            self.stats[exp[2]] += int(exp[1])
+            return True
+        
     def _process_attributes(self, attributes):
         for a, i in attributes.items():
             if a in self.stats:
@@ -227,8 +317,8 @@ class UserProfile(grok.Model):
                     self.stats[a['attribute']] += a['modifier']
                 else:
                     self.stats[a['attribute']] = a['modifier']
-            if 'buff' in details['infix_upgrade']:
-                self.buffs.append(details['infix_upgrade']['buff'])
+#             if 'buff' in details['infix_upgrade']:
+#                 self.buffs.append(details['infix_upgrade']['buff'])
             
     def _check_stats(self, e):
         if 'id' in e and type(e['id']) is dict:
@@ -367,6 +457,8 @@ class UserProfileViewlet(grok.Viewlet):
             if 'character' in self.request:
                 self.context.selected = self.request['character']
                 self.context.refresh = True
+            if 'gmode' in self.request:
+                self.context.gmode = self.request['gmode']
             self.context.update()
             
         js_utils.need()

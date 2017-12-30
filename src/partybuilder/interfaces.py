@@ -42,3 +42,6 @@ class IItemStatsCache(component.Interface):
 class ISkinCache(component.Interface):
     ''' An item skins cache '''
     
+class ITraitsCache(component.Interface):
+    ''' A cache for traits '''
+    
