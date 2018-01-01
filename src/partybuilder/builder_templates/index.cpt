@@ -14,7 +14,7 @@
 		<div class="nav navbar-nav page-header"><h1>GW2 Party Builder</h1></div>
 		<div class="collapse navbar-collapse mr-auto" id="navMenu" style="margin-left:2em">
 			<ul class="navbar-nav mr-auto">
-				<div tal:replace="structure provider:navigation" />
+				<li tal:replace="structure provider:navigation" />
 			</ul>
 		</div>
 		<div class="nav navbar-nav ml-auto" tal:content="structure provider:oauthlogins"></div>

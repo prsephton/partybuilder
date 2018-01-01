@@ -16,16 +16,21 @@
 			</li>
 		</ul>
 		<p>Once you have generated an application key, copy it from the Guild Wars 2 site and paste it into the box below.</p>
-		<frameset>
+		<fieldset>
 			<legend>Please enter your key</legend>
 			<div tal:content="structure path:context/@@apikey" />
-		</frameset>
+		</fieldset>
 	</div>
 	<div tal:condition="not:viewlet.needs_key">
 		<form tal:attributes="action path:request/URL" method="post" enctype="multipart/formdata">
-			<p>Guild Wars 2 API key is: <span tal:content="path:viewlet/user/gw2_apikey" /> <input type="submit" name="reset_gw2key" value="reset" /></p>
+			<p>Guild Wars 2 API key is: <span tal:content="path:viewlet/user/gw2_apikey" /> 
+			<input type="submit" name="reset_gw2key" value="reset key" class="btn btn-primary btn-sm" /></p>
 		</form>
-		<h5>Identified account name: <span tal:replace="path:context/account/name" /></h5>
+		<form tal:attributes="action path:request/URL" method="post" enctype="multipart/formdata">
+			<h5>Identified account name: <span tal:replace="path:context/account/name" />
+			<input type="submit" name="refresh_char" value="refresh info" class="btn btn-primary btn-sm" /></h5>
+		</form>
+		
 		<div class="container row">
 			<div class="col-md-6">
 				<p>The following characters are defined for this account:</p>
@@ -46,15 +51,28 @@
 						<p>Please be patient; this can take a while!</p>
 					</div>
 				</form>
+				<form tal:attributes="action path:request/URL" method="post" enctype="multipart/formdata" class="container paged">
+					<ul class="list-unstyled row">
+						<li class="col-md-5" tal:repeat="w range(len(context.weapons))">
+							<div class="radio">
+							  <label>
+							    <input class='autosubmit retain' tal:condition="context.selected_weapon==w" type="radio" name="weapon" tal:attributes="value w" checked>
+							    <input class='autosubmit retain' tal:condition="context.selected_weapon!=w" type="radio" name="weapon" tal:attributes="value w">
+								<span tal:replace="structure context.weaponset(w)" />
+							  </label>
+							</div>
+						</li>
+					</ul>
+				</form>				
 			</div>
-			<div class="col-md-6">
+			<div class="col-md-6 paged">
 				<form tal:attributes="action path:request/URL" method="post" enctype="multipart/formdata" class="container">
 					<ul class="list-unstyled row">
 						<li class="col-md-4" tal:repeat="mode path:context/game_modes">
 							<div class="radio">
 							  <label>
-							    <input class='autosubmit' tal:condition="context.gmode==mode" type="radio" name="gmode" tal:attributes="value mode" checked>			
-							    <input class='autosubmit' tal:condition="context.gmode!=mode" type="radio" name="gmode" tal:attributes="value mode">
+							    <input class='autosubmit retain' tal:condition="context.gmode==mode" type="radio" name="gmode" tal:attributes="value mode" checked>			
+							    <input class='autosubmit retain' tal:condition="context.gmode!=mode" type="radio" name="gmode" tal:attributes="value mode">
 								<span tal:replace="mode" />
 							  </label>
 							</div>
@@ -86,8 +104,20 @@
 					</div>
 				</div>
 			</div>
-		<div class="container">
-		<div class="container paged row">
+		</div>
+		<div class="container row paged">
+			<table>
+				<tr>
+					<td tal:repeat="s path:context/weapon_skills">
+						<img tal:attributes="src path:s/icon; title path:s/name" style="height:54px" />
+					</td>
+					<td tal:repeat="s path:context/utility_skills">
+						<img tal:attributes="src path:s/icon; title path:s/name" style="height:54px" />
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div class="container row paged">
 			<p><span tal:content="path:context/core/name"/>: Level <span tal:content="path:context/core/level"/> <span tal:content="path:context/core/gender" />
 			   <span tal:content="path:context/core/race" /> <span tal:content="path:context/core/profession" />.  Played for 
 			   <span tal:content="int(context.core['age']/(24*60*60))"/> days, 
@@ -99,7 +129,7 @@
 					<div class="col-md-6">
 						<div class="row">
 							<div class="col-md-3">
-								<img tal:attributes="src path:g/id/icon" />
+								<img tal:attributes="src path:g/id/icon; title context.gear_title(g)" />
 							</div>
 							<div class="col-md-9">
 								<span tal:condition="path:g/stats | nothing" tal:content="path:g/stats/id/name" />
@@ -111,7 +141,7 @@
 						<div class="row">
 							<tal:loop tal:repeat="u path:g/upgrades" >
 								<div class="col-md-3">
-									<img tal:attributes="src path:u/icon" />
+									<img tal:attributes="src path:u/icon; title context.upgrade_title(u, repeat['g'].index)" />
 								</div>
 								<div class="col-md-9">
 									<span tal:content="path:u/name" />
@@ -135,5 +165,14 @@
 				</div>
 			</div>
 		</div>
+		<fieldset class="container row paged">
+			<legend>Buffs (not included in stats):</legend>
+			<ul class="list-unstyled">
+				<li tal:repeat="b path:context/buffs">
+					<span tal:replace="structure b" />
+				</li>
+			</ul>
+		</fieldset>
+		
 	</div>
 </div>

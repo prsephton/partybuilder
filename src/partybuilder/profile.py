@@ -75,32 +75,27 @@ class GW2API(object):
             for spec in ret['specializations'][gmode]:
                 if spec and 'id' in spec: 
                     spec['id'] = self.specializations(spec['id'])
-                    spec['traits'] = [self.traits(trait) for trait in spec['traits']]                    
+                    spec['traits'] = [self.traits(trait) for trait in spec['traits']]        
+        for gmode in ret['skills']:
+            s = ret['skills'][gmode]
+            s['heal'] = self.skills(s['heal'])
+            s['elite'] = self.skills(s['elite'])
+            s['utilities'] = [self.skills(u) for u in s['utilities']]
+            ret['skills'][gmode] = s
+            
         return ret
     
-    def character_equipment(self, key, character):
-        ep = 'characters/{}/equipment'.format(character)
-        ret = self.apiRequest(ep, key)
-        for item in ret['equipment']:
-            item['id'] = self.items(item['id'])
-            if 'upgrades' in item:
-                item['upgrades'] = [self.items(i) for i in item['upgrades']]
-            if 'infusions' in item:
-                item['infusions'] = [self.items(i) for i in item['infusions']]
-            if 'skin' in item:
-                item['skin'] = self.skins(item['skin'])
-            if 'stats' in item:
-                item['stats']['id'] = self.itemstats(item['stats']['id'])
-        return ret
+    def get_weapon_skills(self, profession, weapons):
+        ep = 'professions/{}'.format(profession)
+        ret = self.apiRequest(ep)
+        if ret is None: return None
+        pref = ret['weapons']
+        for slot in weapons:  # fill in weapon skills info
+            for w in slot:
+                wtype = w['id']['details']['type']
+                w['skills'] = [s['id'] for s in pref[wtype]['skills']]
+                w['skills'] = [self.skills(id) for id in w['skills']]
                 
-    def character_skills(self, key, character):
-        ep = 'characters/{}/skills'.format(character)
-        return self.apiRequest(ep, key)
-
-    def character_specializations(self, key, character):
-        ep = 'characters/{}/specializations'.format(character)
-        return self.apiRequest(ep, key)
-    
     def skins(self, a_id):
         cache = ISkinCache(self.app)
         val = cache[a_id]
@@ -146,10 +141,14 @@ class GW2API(object):
 class SpecImage(grok.Model):
     fn = 'noname'
     image = ''
+    url = ''
     
     def __init__(self, url):
         self.fn = url[url.rfind("/")+1:]
-        fd = StringIO(urlopen(url).read())
+        self.url = url
+        
+    def retrieve(self):
+        fd = StringIO(urlopen(self.url).read())
         im = Image.open(fd)
         _w, h = im.size
         box = (0, h-200, 650, 200)
@@ -247,9 +246,13 @@ class UserProfile(grok.Model):
         self.weapons = self._weapons()
         self.aquatic = self._aquatic()
 
+        GW2API().get_weapon_skills(self.core['profession'], self.weapons)    
+
+        self.rune_bonuses = []
         for r in self.runes.values():
             b = r['rune']['bonuses'][:r['count']]
             for effect in b:
+                self.rune_bonuses.append(effect)
                 if effect.find(' to All Stats')>0:
                     perc = int(effect.split(' ')[0])
                     for stat in ['Power', 'Precision', 'Toughness', 'Vitality', 'Ferocity', 'Healing', 'ConditionDamage']:
@@ -269,18 +272,36 @@ class UserProfile(grok.Model):
         self.boon_duration = (self.stats['BoonDuration'] + self.stats['Concentration']) / 15.0
         self.cond_duration = (self.stats['ConditionDuration'] + self.stats['Expertise']) / 15.0
         
-        for i in list(self.spec_bg.keys()):
-            del self.spec_bg[i]
+#         for i in list(self.spec_bg.keys()):
+#             del self.spec_bg[i]
 
         self.selected_traits = []
         for spec in self.specs():
+            for t in spec['traits']:
+                if 'description' in t:
+                    self.buffs.append("%s - %s"%(t['name'], t['description']))
+                else:
+                    self.buffs.append(t['name'])            
             img = SpecImage(spec['id']['background'])
-            self.spec_bg[img.fn] = img
+            if img.fn not in self.spec_bg.keys():
+                img.retrieve()
+                self.spec_bg[img.fn] = img
             spec['id']['img_no'] = img.fn
             self.selected_traits.extend([t['name'] for t in spec['traits']])
             
+        
         pass
 
+    def gear_title(self, gear):
+        stats = [ "%s: +%s" % (n, s) for n, s in gear['stats']['attributes'].items()]
+        return "\n".join(stats)
+
+    def upgrade_title(self, upgrade, idx):
+        if 'details' in upgrade and 'type' in upgrade['details']:
+            if upgrade['details']['type'] == 'Rune':
+                return self.rune_bonuses[idx]
+        return ''
+    
     def statlist(self):
         for s in ["Power", "Precision", "Toughness", "Vitality", "Healing", "ConditionDamage"]:
             yield {'name':s, 'value': self.stats[s], 'unit': ''}
@@ -317,7 +338,10 @@ class UserProfile(grok.Model):
                     self.stats[a['attribute']] += a['modifier']
                 else:
                     self.stats[a['attribute']] = a['modifier']
-#             if 'buff' in details['infix_upgrade']:
+            if 'buff' in details['infix_upgrade']:
+                pass
+        else:
+            pass
 #                 self.buffs.append(details['infix_upgrade']['buff'])
             
     def _check_stats(self, e):
@@ -354,6 +378,30 @@ class UserProfile(grok.Model):
                     print 'Not processing upgrade type=%s' % u['type']
 
     
+    def weaponset(self, w):
+        wset = self.weapons[w]
+        items = [item['id']['details']['type'] for item in wset]
+        return "/".join(items)
+    
+    def weapon_skills(self):
+        if self.selected_weapon >= len(self.weapons): self.selected_weapon = 0
+        wset = self.weapons[self.selected_weapon]
+        skills = []
+        for w in wset:
+            for s in w['skills']:
+                skills.append(s)
+        return skills
+
+    def utility_skills(self):
+        s = self.core['skills'][self.gmode]
+        skills = [s['heal']]
+        skills.extend(s['utilities'])
+        skills.append(s['elite'])
+        return skills
+        
+    def describe_skill(self, s):
+        return ''
+    
     def _weapons(self):
         refs = {}
         
@@ -370,8 +418,16 @@ class UserProfile(grok.Model):
             if 'slot' in e and e['slot'] in items:
                 refs[e['slot']] = e                    
         weapons_b = [refs[i] for i in items if i in refs]
-        weapons = [weapons_a, weapons_b]
-        current = weapons[self.selected_weapon]
+        if len(weapons_b):
+            weapons = [weapons_a, weapons_b]
+        else:
+            weapons = [weapons_a]
+        
+        if self.selected_weapon >= len(weapons):
+            self.selected_weapon = 0
+            
+        current = weapons[self.selected_weapon] 
+        
         for c in current:
             self._check_stats(c)            
         return weapons
@@ -451,6 +507,8 @@ class UserProfileViewlet(grok.Viewlet):
         self.user = user = IUser(self.context)
         if "reset_gw2key" in self.request:
             user.gw2_apikey = u""
+        if "refresh_char" in self.request:
+            self.context.refresh = True
         if len(user.gw2_apikey) == 0:
             self.needs_key = True
         else:
@@ -459,6 +517,8 @@ class UserProfileViewlet(grok.Viewlet):
                 self.context.refresh = True
             if 'gmode' in self.request:
                 self.context.gmode = self.request['gmode']
+            if 'weapon' in self.request:
+                self.context.selected_weapon = int(self.request['weapon'])
             self.context.update()
             
         js_utils.need()
