@@ -509,7 +509,7 @@ class UserProfileViewlet(grok.Viewlet):
             user.gw2_apikey = u""
         if "refresh_char" in self.request:
             self.context.refresh = True
-        if len(user.gw2_apikey) == 0:
+        if not user.gw2_apikey or len(user.gw2_apikey) == 0:
             self.needs_key = True
         else:
             if 'character' in self.request:
