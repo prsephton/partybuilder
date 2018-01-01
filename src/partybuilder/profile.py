@@ -148,17 +148,20 @@ class SpecImage(grok.Model):
         self.url = url
         
     def retrieve(self):
-        fd = StringIO(urlopen(self.url).read())
-        im = Image.open(fd)
-        _w, h = im.size
-        box = (0, h-200, 650, 200)
-        region = im.crop(box)
-        box = (500, 100)
-        region = region.resize(box)
-        bytes = StringIO()
-        region.save(bytes, format='PNG')
-        self.image = bytes.getvalue()
-
+        try:
+            fd = StringIO(urlopen(self.url).read())
+            im = Image.open(fd)
+            _w, h = im.size
+            box = (0, h-200, 650, 200)
+            region = im.crop(box)
+            box = (500, 100)
+            region = region.resize(box)
+            bytes = StringIO()
+            region.save(bytes, format='PNG')
+            self.image = bytes.getvalue()
+        except Exception, e:
+            print "Cannot retrieve image at url: %s" % self.url
+            print "Error %s" % str(e)
 
 class SpecImageView(grok.View):
     grok.context(SpecImage)
