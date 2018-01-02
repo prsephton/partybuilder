@@ -296,13 +296,22 @@ class UserProfile(grok.Model):
         pass
 
     def gear_title(self, gear):
-        stats = [ "%s: +%s" % (n, s) for n, s in gear['stats']['attributes'].items()]
-        return "\n".join(stats)
+        try:
+            stats = [ "%s: +%s" % (n, s) for n, s in gear['stats']['attributes'].items()]
+            return "\n".join(stats)
+        except Exception, e:
+            print "Cannot determine gear title for %s" % gear
+            print "%s" % str(e)
+        return ''
 
     def upgrade_title(self, upgrade, idx):
-        if 'details' in upgrade and 'type' in upgrade['details']:
-            if upgrade['details']['type'] == 'Rune':
-                return self.rune_bonuses[idx]
+        try:
+            if 'details' in upgrade and 'type' in upgrade['details']:
+                if upgrade['details']['type'] == 'Rune':
+                    return self.rune_bonuses[idx]
+        except Exception, e:
+            print "Cannot determine upgrade title for %s" % upgrade
+            print "%s" % str(e)
         return ''
     
     def statlist(self):
