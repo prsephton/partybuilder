@@ -44,4 +44,7 @@ class ISkinCache(component.Interface):
     
 class ITraitsCache(component.Interface):
     ''' A cache for traits '''
-    
+
+class ISkillsCache(component.Interface):
+    ''' A cache for skills '''
+
