@@ -106,15 +106,37 @@
 			</div>
 		</div>
 		<div class="container row paged">
-			<table>
-				<tr>
-					<td tal:repeat="s path:context/weapon_skills">
-						<img tal:attributes="src path:s/icon; title path:s/name" style="height:54px" />
-					</td>
-					<td tal:repeat="s path:context/utility_skills">
-						<img tal:attributes="src path:s/icon; title path:s/name" style="height:54px" />
-					</td>
-				</tr>
+			<form tal:attributes="action path:request/URL" method="post" enctype="multipart/formdata" class="container">
+				<input type="hidden" id="skill_choice"
+					tal:condition="getattr(context, 'skill_choices', False)"
+					tal:attributes="name getattr(context, 'skill_choices'); value getattr(context, 'skill_choice')"/>
+				<table class="container">
+					<tbody>
+						<tr class="row" tal:repeat="c path:context/prof_skills">
+							<td tal:repeat="s c.values()">
+								<button class="skill_choice"
+									tal:attributes="skill_choice string:${s.skill_choice}"
+									tal:condition="context.skill_choices is not None">
+									<img tal:attributes="src path:s/icon; title path:s/name" style="height:54px" />
+								</button>
+								<img tal:condition="context.skill_choices is None"
+									tal:attributes="src path:s/icon; title path:s/name" style="height:54px" />
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</form>			
+			<table class="container">
+				<tbody>
+					<tr class="row">
+						<td tal:repeat="s path:context/weapon_skills">
+							<img tal:attributes="src path:s/icon; title path:s/name" style="height:54px" />
+						</td>
+						<td tal:repeat="s path:context/utility_skills">
+							<img tal:attributes="src path:s/icon; title path:s/name" style="height:54px" />
+						</td>
+					</tr>
+				</tbody>
 			</table>
 		</div>
 		<div class="container row paged">
