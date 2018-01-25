@@ -9,7 +9,7 @@ import regex as re
 from persistent.dict import PersistentDict
 from persistent.list import PersistentList
 from interfaces import (ILayout, IUser, IUserProfile, Content, IItemCache, 
-                        IItemStatsCache, ISkinCache, ITraitsCache)
+                        IItemStatsCache, ISkinCache, ITraitsCache, ISkillsCache)
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.error import HTTPError, URLError
@@ -19,6 +19,122 @@ from zope import component
 from gw2api.v2 import wvw_abilities
 from PIL import Image
 from StringIO import StringIO
+import regex as re
+
+
+g_overrides = {
+        'skills': {
+            'Comet': {
+                    'attunement': 'Water',
+                },
+            'Freezing Gust': {
+                    'attunement': 'Water',
+                },
+            'Obsidian Flesh': {
+                    'attunement': 'Earth',
+                },
+            'Magnetic Wave': {
+                    'attunement': 'Earth',
+                },
+            'Gale': {
+                    'attunement': 'Air',
+                    'slot': 'Weapon_4',
+                },
+            'Swirling Winds': {
+                    'attunement': 'Air',
+                },
+            'Flamewall': {
+                    'attunement': 'Fire',
+                },
+            'Fire Shield': {
+                'slot': 'Weapon_5',
+                },
+            }
+    }
+
+
+def check_overrides(what, name, attribute):
+    global g_overrides
+    if what in g_overrides:
+        if name in g_overrides[what]:
+            if attribute in g_overrides[what][name]:
+                return g_overrides[what][name][attribute]
+    
+
+class SkillFact(object):
+    type = ''
+    text = ''
+    icon = ''
+    description = ''
+    duration = ''
+    status = None
+    apply_count = None
+    value = None    
+    distance = None
+    requires_trait = None
+    overrides = None
+
+
+class Skill(object):
+    facts = []
+    traited_facts = None
+    name = ''
+    icon = None
+    description = ''
+    type = None
+    slot = ''
+    flags = []
+    specialization = None
+    skill_choice = None
+    categories = None
+    weapon_type = None
+    id = 0
+    flip_skill = None
+    chat_link = ''
+    
+    def __init__(self, api, skill):
+        self.id = skill
+        skill = api.skills(skill)
+        self.name = skill['name']
+        global g_overrides
+        if 'skills' in g_overrides and self.name in g_overrides['skills']:
+            for k, attr in g_overrides['skills'][self.name].items():
+                skill[k] = attr
+        self.icon = skill['icon']
+        self.type = skill['type']
+        self.slot = skill['slot']
+        self.flags = skill['flags']
+        if 'description' in skill: self.description = skill['description']
+        if 'specialization' in skill: self.specialization = skill['specialization']
+        if 'weapon_type' in skill: self.weapon_type = skill['weapon_type']
+        if 'categories' in skill: self.categories = skill['categories']
+        if 'attunement' in skill: self.attunement = skill['attunement']
+
+        match = re.match(r"^(.*) Attunement", self.name)
+        if match: 
+            self.skill_choice = match[1]
+        if 'flip_skill' in skill:
+            try:
+                skill_id = int(skill['flip_skill'])
+                self.flip_skill = Skill(api, skill_id)
+            finally:
+                pass
+    
+    def getClass(self, skill_choices):
+        if skill_choices is None: return 'Other'
+        return getattr(self, skill_choices, 'Other')
+    
+#  Traits for the character are selected in-game.
+#  Skills categories are profession skills, weapon skills, heal, utility and elite skill
+#  Each skill or fact may have a specialization, and is unavailable unless the skill specialization 
+#  is present in the characters set of specializations.
+#  Each skill has a list of facts, which may be overridden by the list of traited facts.
+#  Traited facts have a 'required trait' which must be selected by the character for the override
+#  to be in effect.
+#  If a skill has a flip_skill, this would be the next skill in sequence, but its availability
+#  depends on a character having the correct specialization.
+#  Traits can have skills which trigger given specific condition (eg. <50% health or when using 
+#  a heal skill).  Such skills in turn have lists of skill facts.
 
 class GW2API(object):
     base = 'https://api.guildwars2.com/v2/'
@@ -75,27 +191,20 @@ class GW2API(object):
             for spec in ret['specializations'][gmode]:
                 if spec and 'id' in spec: 
                     spec['id'] = self.specializations(spec['id'])
-                    spec['traits'] = [self.traits(trait) for trait in spec['traits']]        
+                    spec['traits'] = [self.traits(trait) for trait in spec['traits']]
         for gmode in ret['skills']:
             s = ret['skills'][gmode]
-            s['heal'] = self.skills(s['heal'])
-            s['elite'] = self.skills(s['elite'])
-            s['utilities'] = [self.skills(u) for u in s['utilities']]
+            s['heal'] = Skill(self, s['heal'])
+            s['elite'] = Skill(self, s['elite'])
+            s['utilities'] = [Skill(self, u) for u in s['utilities']]
             ret['skills'][gmode] = s
             
         return ret
     
-    def get_weapon_skills(self, profession, weapons):
+    def get_profession(self, profession):
         ep = 'professions/{}'.format(profession)
-        ret = self.apiRequest(ep)
-        if ret is None: return None
-        pref = ret['weapons']
-        for slot in weapons:  # fill in weapon skills info
-            for w in slot:
-                wtype = w['id']['details']['type']
-                w['skills'] = [s['id'] for s in pref[wtype]['skills']]
-                w['skills'] = [self.skills(id) for id in w['skills']]
-                
+        return self.apiRequest(ep)
+        
     def skins(self, a_id):
         cache = ISkinCache(self.app)
         val = cache[a_id]
@@ -121,7 +230,12 @@ class GW2API(object):
         return val
     
     def skills(self, a_id):
-        return self.apiRequest('skills/{}'.format(a_id))
+        cache = ISkillsCache(self.app)
+        val = cache[a_id]
+        if val is None:
+            val = self.apiRequest('skills/{}'.format(a_id))
+            cache[a_id] = val
+        return val
     
     def specializations(self, a_id):
         spec = self.apiRequest('specializations/{}'.format(a_id))
@@ -199,6 +313,8 @@ class UserProfile(grok.Model):
     characters = []
     selected = ''
     refresh = False
+    skill_choices = None
+    skill_choice = None
     gear = []
     trinkets = []
     amulet = []
@@ -248,8 +364,13 @@ class UserProfile(grok.Model):
         self.backpack = self._backpack()
         self.weapons = self._weapons()
         self.aquatic = self._aquatic()
-
-        GW2API().get_weapon_skills(self.core['profession'], self.weapons)    
+        self.profession = GW2API().get_profession(self.core['profession'])
+        self.skill_choices = None
+        if self.profession['name'] == 'Elementalist':
+            self.skill_choices = 'attunement'
+            if self.skill_choice is None: self.skill_choice = 'Fire'
+        self.prof_skills = self._profession_skills()
+        self.weap_skills = self._weapon_skills()
 
         self.rune_bonuses = []
         for r in self.runes.values():
@@ -297,8 +418,12 @@ class UserProfile(grok.Model):
 
     def gear_title(self, gear):
         try:
-            stats = [ "%s: +%s" % (n, s) for n, s in gear['stats']['attributes'].items()]
-            return "\n".join(stats)
+            if 'stats' in gear:
+                stats = [ "%s: +%s" % (n, s) for n, s in gear['stats']['attributes'].items()]
+                return "\n".join(stats)
+            else:
+                attributes = gear['id']['details']['infix_upgrade']['attributes']
+                return "\n".join(['%s: +%s' % (a['attribute'], a['modifier']) for a in attributes])
         except Exception, e:
             print "Cannot determine gear title for %s" % gear
             print "%s" % str(e)
@@ -395,14 +520,19 @@ class UserProfile(grok.Model):
         items = [item['id']['details']['type'] for item in wset]
         return "/".join(items)
     
+    def select_weapon(self, current):
+        self.selected_weapon = current
+    
     def weapon_skills(self):
         if self.selected_weapon >= len(self.weapons): self.selected_weapon = 0
-        wset = self.weapons[self.selected_weapon]
-        skills = []
-        for w in wset:
-            for s in w['skills']:
-                skills.append(s)
-        return skills
+        skills = self.weap_skills[self.selected_weapon]
+        if self.skill_choice and self.skill_choice in skills:
+            skills = skills[self.skill_choice].values()
+        elif 'Other' in skills:
+            skills = skills['Other'].values()
+        else:
+            skills = []
+        return [s for s in skills if self._spec_check(s)]
 
     def utility_skills(self):
         s = self.core['skills'][self.gmode]
@@ -413,6 +543,69 @@ class UserProfile(grok.Model):
         
     def describe_skill(self, s):
         return ''
+
+    def _spec_check(self, item):
+        specs = set([x['traits'][0]['specialization'] for x in self.specs()])
+        if type(item) is dict:
+            if 'specialization' in item:
+                return item['specialization'] in specs
+        else:
+            if hasattr(item, 'specialization'):
+                if item.specialization is not None:
+                    return item.specialization in specs
+        return True
+
+    def _profession_skills(self):
+        api = GW2API()
+        p = self.profession
+        prof_skills = [skill for skill in p['skills'] if skill['type']=='Profession']
+        from collections import OrderedDict
+        skills = OrderedDict()
+        for s in prof_skills:
+            skill = s['id'] = Skill(api, s['id'])
+            if self._spec_check(skill):
+                if skill.categories is not None:
+                    for cat in skill.categories:
+                        if cat not in skills: skills[cat] = {}
+                        skills[cat][skill.slot] = skill
+                elif self.skill_choices == 'attunement':
+                    cat = "attunement"
+                    if cat not in skills: skills[cat] = {}
+                    skills[cat][skill.slot] = skill
+                else:
+                    cat = 'Other'
+                    if cat not in skills: skills[cat] = {}
+                    skills[cat][skill.slot] = skill
+        for cat in skills:
+            od = OrderedDict()
+            for k in sorted(skills[cat].keys()):
+                od[k] = skills[cat][k] 
+            skills[cat] = od
+        return skills.values()
+
+    def _weapon_skills(self):
+        api = GW2API()
+        pref = self.profession['weapons']
+        from collections import OrderedDict
+        skills = []
+        for slot in self.weapons:  # fill in weapon skills info
+            skillset = {}
+            for w in slot:
+                wtype = w['id']['details']['type']
+                w_skills = [s['id'] for s in pref[wtype]['skills']]
+                w_skills = [Skill(api, id) for id in w_skills]
+                for s in w_skills:
+                    c = s.getClass(self.skill_choices)
+                    if c not in skillset: skillset[c] = {}
+                    skillset[c][s.slot] = s
+            for c in skillset:
+                od = OrderedDict()
+                for s in sorted(skillset[c].keys()):
+                    od[s] = skillset[c][s]
+                skillset[c] = od
+            skills.append(skillset)
+        
+        return skills
     
     def _weapons(self):
         refs = {}
@@ -529,8 +722,10 @@ class UserProfileViewlet(grok.Viewlet):
                 self.context.refresh = True
             if 'gmode' in self.request:
                 self.context.gmode = self.request['gmode']
+            if 'attunement' in self.request:
+                self.context.skill_choice = self.request['attunement']
             if 'weapon' in self.request:
-                self.context.selected_weapon = int(self.request['weapon'])
+                self.context.select_weapon(int(self.request['weapon']))
             self.context.update()
             
         js_utils.need()
