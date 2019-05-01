@@ -32,6 +32,7 @@ setup(name='partybuilder',
                         'six',
                         'oauthlib',
                         'regex',
+                        'BeautifulSoup4',
                         ],
       entry_points={
           'fanstatic.libraries': [

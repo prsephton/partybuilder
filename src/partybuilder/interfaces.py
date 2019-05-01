@@ -26,6 +26,9 @@ class IParty(component.Interface):
                           unique=True, default=[])
 
 
+class IFact(component.Interface):
+    ''' A fact as per GW2 API '''
+
 class IUserProfile(component.Interface):
     ''' Attributes associated with a user profile '''
 
@@ -47,4 +50,7 @@ class ITraitsCache(component.Interface):
 
 class ISkillsCache(component.Interface):
     ''' A cache for skills '''
+
+class ISpecializationsCache(component.Interface):
+    ''' A cache for specializations '''
 

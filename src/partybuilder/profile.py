@@ -9,7 +9,8 @@ import regex as re
 from persistent.dict import PersistentDict
 from persistent.list import PersistentList
 from interfaces import (ILayout, IUser, IUserProfile, Content, IItemCache, 
-                        IItemStatsCache, ISkinCache, ITraitsCache, ISkillsCache)
+                        IItemStatsCache, ISkinCache, ITraitsCache, ISkillsCache,
+                        ISpecializationsCache, IFact)
 from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.error import HTTPError, URLError
@@ -59,20 +60,8 @@ def check_overrides(what, name, attribute):
         if name in g_overrides[what]:
             if attribute in g_overrides[what][name]:
                 return g_overrides[what][name][attribute]
-    
 
-class SkillFact(object):
-    type = ''
-    text = ''
-    icon = ''
-    description = ''
-    duration = ''
-    status = None
-    apply_count = None
-    value = None    
-    distance = None
-    requires_trait = None
-    overrides = None
+
 
 
 class Skill(object):
@@ -109,6 +98,9 @@ class Skill(object):
         if 'weapon_type' in skill: self.weapon_type = skill['weapon_type']
         if 'categories' in skill: self.categories = skill['categories']
         if 'attunement' in skill: self.attunement = skill['attunement']
+        factMaker = component.getUtility(IFact)
+        if 'facts' in skill: self.facts = factMaker(skill['facts'])
+        if 'traited_facts' in skill: self.traited_facts = factMaker(skill['traited_facts'])
 
         match = re.match(r"^(.*) Attunement", self.name)
         if match: 
@@ -151,7 +143,7 @@ class GW2API(object):
                 req.add_header('Authorization', "Bearer: {}".format(key))
             data = urlencode(data)
             req.add_data(data)
-        elif key is None:
+        elif key is None:            
             req = Request("{}{}".format(self.base, ep)) # GET without token
         else:
             if data is None: data = {}
@@ -160,7 +152,9 @@ class GW2API(object):
             req = Request("{}{}?{}".format(self.base, ep, data))
         for retries in range(3):
             try:
+                print "requesting {}".format(ep),
                 res = urlopen(req).read()
+                print " - done"
                 return json.loads(res)
             except HTTPError as e:
                 raise
@@ -168,20 +162,39 @@ class GW2API(object):
                 pass
     
     def account(self, key):
+        import strainer
+        strainer.gw2wikiSkills()
         return self.apiRequest('account', key)
     
     def characters(self, key):
         return self.apiRequest('characters', key)
     
     def character_core(self, key, character):
+        # name    "a name"
+        # race    "Human"
+        # gender    "Male"
+        # flags    []
+        # profession    "Guardian"
+        # level    80
+        # guild    " a guild id "
+        # age    20311387
+        # created    "2012-08-29T01:59:00Z"
+        # deaths    13168
+        # specializations, equipment, equipment_pvp, skills
+        #
         ep = 'characters/{}'.format(character)
         ret = self.apiRequest(ep, key)
         if ret is None: return None
+        
+        item_ids = [item['id'] for item in ret['equipment']]
+        self.find_items(item_ids)
         for item in ret['equipment']:
-            item['id'] = self.items(item['id'])
+            item['id'] = self.items(item['id'])            
             if 'upgrades' in item:
+                self.find_items(item['upgrades'])
                 item['upgrades'] = [self.items(i) for i in item['upgrades']]
             if 'infusions' in item:
+                self.find_items(item['infusions'])                
                 item['infusions'] = [self.items(i) for i in item['infusions']]
             if 'skin' in item:
                 item['skin'] = self.skins(item['skin'])
@@ -202,8 +215,13 @@ class GW2API(object):
         return ret
     
     def get_profession(self, profession):
-        ep = 'professions/{}'.format(profession)
-        return self.apiRequest(ep)
+        ep = 'professions/{}'.format(profession)        
+        profession = self.apiRequest(ep)
+        skill_ids = [skill['id'] for skill in profession['skills'] if type(skill['id']) is int]
+        for weapon in profession['weapons'].values():
+            skill_ids.extend([skill['id'] for skill in weapon['skills'] if type(skill['id']) is int] )
+        self.find_skills(skill_ids)
+        return profession
         
     def skins(self, a_id):
         cache = ISkinCache(self.app)
@@ -220,6 +238,22 @@ class GW2API(object):
             val = self.apiRequest('items/{}'.format(a_id))
             cache[a_id] = val
         return val
+
+    def find_items(self, item_ids):
+        cache = IItemCache(self.app)
+        items = [str(i) for i in item_ids if str(i) not in cache.keys()]
+        if len(items):
+            ret = self.apiRequest('items?ids={}'.format(",".join(items)))
+            for item in ret:
+                cache[item['id']] = item
+
+    def find_skills(self, skill_ids):
+        cache = ISkillsCache(self.app)
+        skills = [str(i) for i in skill_ids if str(i) not in cache.keys()]
+        if len(skills):
+            ret = self.apiRequest('skills?ids={}'.format(",".join(skills)))
+            for skill in ret:
+                cache[skill['id']] = skill
 
     def itemstats(self, a_id):
         cache = IItemStatsCache(self.app)
@@ -238,9 +272,13 @@ class GW2API(object):
         return val
     
     def specializations(self, a_id):
-        spec = self.apiRequest('specializations/{}'.format(a_id))
-        for key in ['minor_traits', 'major_traits']:
-            spec[key] = [self.traits(trait) for trait in spec[key]]
+        cache = ISpecializationsCache(self.app)
+        spec = cache[a_id]
+        if spec is None:
+            spec = self.apiRequest('specializations/{}'.format(a_id))
+            for key in ['minor_traits', 'major_traits']:
+                spec[key] = [self.traits(trait) for trait in spec[key]]
+            cache[a_id] = spec
         return spec
     
     def traits(self, a_id):
@@ -260,7 +298,7 @@ class SpecImage(grok.Model):
     def __init__(self, url):
         self.fn = url[url.rfind("/")+1:]
         self.url = url
-        
+    
     def retrieve(self):
         try:
             fd = StringIO(urlopen(self.url).read())
@@ -365,10 +403,12 @@ class UserProfile(grok.Model):
         self.weapons = self._weapons()
         self.aquatic = self._aquatic()
         self.profession = GW2API().get_profession(self.core['profession'])
+                
         self.skill_choices = None
         if self.profession['name'] == 'Elementalist':
             self.skill_choices = 'attunement'
             if self.skill_choice is None: self.skill_choice = 'Fire'
+        
         self.prof_skills = self._profession_skills()
         self.weap_skills = self._weapon_skills()
 
@@ -526,13 +566,12 @@ class UserProfile(grok.Model):
     def weapon_skills(self):
         if self.selected_weapon >= len(self.weapons): self.selected_weapon = 0
         skills = self.weap_skills[self.selected_weapon]
+        sk = []
         if self.skill_choice and self.skill_choice in skills:
-            skills = skills[self.skill_choice].values()
-        elif 'Other' in skills:
-            skills = skills['Other'].values()
-        else:
-            skills = []
-        return [s for s in skills if self._spec_check(s)]
+            sk = skills[self.skill_choice].values()
+        if 'Other' in skills:
+            sk.extend(skills['Other'].values())
+        return [s for s in sk if self._spec_check(s)]
 
     def utility_skills(self):
         s = self.core['skills'][self.gmode]

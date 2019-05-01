@@ -1,14 +1,14 @@
 import grok
 from datetime import datetime as dt
 from datetime import timedelta as td
-from interfaces import IBuilderApp, IItemCache, ISkinCache, IItemStatsCache, ITraitsCache, ISkillsCache
+from interfaces import IBuilderApp, IItemCache, ISkinCache, IItemStatsCache, ITraitsCache, ISkillsCache, ISpecializationsCache
 
 class Cached(object):
     item = None
     expires = None
     
     def __init__(self, item, lifetime=None):
-        if lifetime is None: lifetime = td(minutes=120)
+        if lifetime is None: lifetime = td(minutes=360)
         self.item = item
         self.expires = dt.now() + lifetime
 
@@ -119,6 +119,20 @@ class AppSkillsCache(grok.Adapter):
         cache = app['skills_cache'] = SkillsCache()
         return cache
     
+class SpecializationsCache(Cache):
+    grok.implements(ISpecializationsCache)
 
+        
+class AppSpecializationsCache(grok.Adapter):
+    grok.context(IBuilderApp)
+    grok.implements(ISpecializationsCache)
     
+    def __new__(self, app):
+        if 'specializations_cache' in app.keys():
+            return app['specializations_cache']
+        cache = app['specializations_cache'] = SpecializationsCache()
+        return cache
+    
+
+ISpecializationsCache    
 
